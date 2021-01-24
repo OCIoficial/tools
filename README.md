@@ -1,5 +1,5 @@
 # tools
-Some tools to help  with the setting of contests
+Some tools to help with the set up of contests
 
 ## hosts.yaml.sample
 
@@ -25,7 +25,7 @@ Script containing some commands useful to configure cms in multiple hosts.
 
 ## cms-load-test-jmeter.jmx
 
-A simple JMeter load test for CMS Contest Web Service. It basically signs in a couple of users and then do some requests with the users logged in. More than extensive test this is meant to be a starting point in case a more robust test is requried. There are some User Defined Variables that need to be configured before running it:
+A simple JMeter load test for CMS Contest Web Service. This is meant to be a starting point in case a more robust test is requried. There are some _User Defined Variables_ that you shoul configure before running it:
 * HOSTNAME: address running the contest
 * PORT: port running the contest
 * USERNAME: the username of a user in the contest
