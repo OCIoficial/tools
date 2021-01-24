@@ -52,7 +52,6 @@ class CMSTools:
                 exec_remote(host, cmnd)
     
     def stop(self,  pattern):
-        print("hola")
         self.exec("screen -X -S resourceService quit", pattern)
 
     def restart(self, pattern):
