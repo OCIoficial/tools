@@ -8,6 +8,7 @@ import argparse
 import re
 import os
 
+
 class CMSTools:
     def __init__(self, hosts_conf, contest_id):
         self._contest_id = contest_id
@@ -30,19 +31,19 @@ class CMSTools:
 
     def remote(self, idx):
         if idx < 0 or idx > len(self.remotes):
-            raise Error("Cannot find remote in configuration")
+            raise Exception("Cannot find remote in configuration")
         return self.remotes[idx]
 
     def match_hosts(self, pattern):
         m = re.match(r"remote(\d+)", pattern)
         if pattern in ["all", "*"]:
             return self.hosts
-        elif pattern == "local":   
+        elif pattern == "local":
             return [self.local]
         elif m:
             return [self.remote(int(m[1]))]
         else:
-            raise Error(f"Cannot match host `{host}`")
+            raise Exception(f"Cannot match host `{pattern}`")
 
     def exec(self, cmnd, pattern):
         for host in self.match_hosts(pattern):
@@ -50,14 +51,14 @@ class CMSTools:
                 subprocess.check_call(['bash', '-c', cmnd])
             else:
                 exec_remote(host, cmnd)
-    
-    def stop(self,  pattern):
+
+    def stop(self, pattern):
         self.exec("screen -X -S resourceService quit", pattern)
 
     def restart(self, pattern):
         self.exec(
-             f"screen -X -S resourceService quit; screen -S resourceService -d -m cmsResourceService -a {self._contest_id}",
-             pattern)
+            f"screen -X -S resourceService quit; screen -S resourceService -d -m cmsResourceService -a {self._contest_id}",
+            pattern)
 
     def copy(self, cms_conf, pattern):
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
@@ -79,7 +80,7 @@ class CMSTools:
             ip = remote['ip']
             os.execlp('ssh', 'ssh', f'{username}@{ip}')
         else:
-            raise Error(f"Cannot match remote `{remote}`")
+            raise Exception(f"Cannot match remote `{remote}`")
 
     def _core_services(self):
         local_ip = self.local['ip']
@@ -106,13 +107,11 @@ class CMSTools:
             'PrintingService': [[local_ip, 25123]]
         }
 
-
     def _database(self):
         local_ip = self.local['ip']
         db = self.local['db']
         port = db.get('port', 5432)
         return f"postgresql+psycopg2://{db['username']}:{db['password']}@{local_ip}:{port}/{db['name']}"
-
 
     def _cms_conf(self, cms_conf):
         cms_conf = json.load(open(cms_conf, 'r'))
@@ -120,38 +119,47 @@ class CMSTools:
         cms_conf['database'] = self._database()
         return cms_conf
 
+
 def exec_remote(host, cmnd):
     username = host['username']
     ip = host['ip']
-    subprocess.check_call(['ssh', f'{username}@{ip}', cmnd]) 
-        
+    subprocess.check_call(['ssh', f'{username}@{ip}', cmnd])
+
 
 def main():
-    parser = argparse.ArgumentParser(
-          formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-          description="""
-             cms-tools is a script containing a set of useful commands to configure cms contests in multiple hosts.
-             The script expects a configuration file containing the description of the hosts. 
-             See the example hosts.yaml for a more detailed description.
-             All comands expect a positional argument specifying in which host they should run. This
-             argument can be either `all` (run in all hosts), `local` (run in local host) or `remoteX` where X is the index
-             (starting from 0) of a remote host as described in the host configuration file.
-             This command is optional and defaulted to `all` for all commands expect for connect which expects a remote host.
-             To see further information for a specific command run the command followed by --help.
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description="""
+             cms-tools is a script containing a set of useful commands to configure cms contests
+             in multiple hosts.  The script expects a configuration file containing the description
+             of the hosts.  See the example hosts.yaml for a more detailed description.
+             All comands expect a positional argument specifying in which host they should run.
+             This argument can be either `all` (run in all hosts), `local` (run in local host)
+             or `remoteX` where X is the index (starting from 0) of a remote host as described
+             in the host configuration file.  This command is optional and defaulted to `all` for
+             all commands expect for connect which expects a remote host.  To see further
+             information for a specific command run the command followed by --help.
              """)
     parser.add_argument("--contest-id", '-c', default='ALL', help="A contest id or ALL to serve all contests")
     parser.add_argument("--host-conf", default="hosts.yaml", help="Path to the host configuration file.")
     subparsers = parser.add_subparsers(dest="command")
-    stop_parser = subparsers.add_parser("stop", help="Stop the services runing on the host(s). This just kills the screen session running cmsResourceService.")
+    stop_parser = subparsers.add_parser(
+        "stop",
+        help="""Stop the services runing on the host(s). This just kills the screen session
+        running cmsResourceService.""")
     stop_parser.add_argument("host", nargs="?", default="all")
 
-    restart_parser = subparsers.add_parser("restart", help="Start or restart the services running on the host(s). This kills the previous screen session and creates a new one executing cmsResourceService -a CONTEST_ID.")
+    restart_parser = subparsers.add_parser(
+        "restart",
+        help="""Start or restart the services running on the host(s). This kills the previous screen
+        session and creates a new one executing cmsResourceService -a CONTEST_ID.""")
     restart_parser.add_argument("host", nargs="?", default="all")
 
-    copy_parser = subparsers.add_parser("copy", help="""
-                 Copy the cms.conf file to the host(s). 
-                 This command expects write permissions to /usr/local/etc/cms.conf. 
-                 The cms.conf file is created from a sample one by filling the core_services and database fields with the correct information as described in the host configuration file.
+    copy_parser = subparsers.add_parser("copy",
+                                        help="""
+                 Copy the cms.conf file to the host(s).
+                 This command expects write permissions to /usr/local/etc/cms.conf.
+                 The cms.conf file is created from a sample one by filling the core_services and
+                 database fields with the correct information as described in the host configuration file.
                  """)
     copy_parser.add_argument("host", nargs="?", default="all")
 
@@ -160,6 +168,10 @@ def main():
     host_parser.add_argument("host")
 
     args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        return
 
     tools = CMSTools(args.host_conf, args.contest_id)
     if args.command == "stop":
