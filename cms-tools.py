@@ -60,7 +60,7 @@ class CMSTools:
             f"screen -X -S resourceService quit; screen -S resourceService -d -m cmsResourceService -a {self._contest_id}",
             pattern)
 
-    def copy(self, cms_conf, pattern):
+    def copy(self, pattern, cms_conf):
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
             json.dump(self._cms_conf(cms_conf), fp, indent=4)
             fp.seek(0)
