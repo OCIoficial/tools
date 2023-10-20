@@ -117,7 +117,11 @@ class CMSTools:
         cms_conf = json.load(open(cms_conf, 'r'))
         cms_conf['core_services'] = self._core_services()
         cms_conf['database'] = self._database()
+        cms_conf['rankings'] = self._rankings()
         return cms_conf
+
+    def _rankings(self):
+        return self._hosts_conf['rankings'] or []
 
 
 def exec_remote(host, cmnd):

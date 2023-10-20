@@ -40,3 +40,6 @@ remote:
       # otherwise you'll need to type the password for every
       # host when running commands.
       username: cms
+
+rankings:
+    - "http://usern4me:passw0rd@localhost:8890/"
