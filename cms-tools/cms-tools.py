@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from typing import Any, TypedDict, cast
 import yaml
 import json
 import tempfile
@@ -8,33 +9,51 @@ import argparse
 import re
 import os
 
+class DBConf(TypedDict):
+    name: str
+    username: str
+    password: str
+
+class Host(TypedDict):
+    ip: str
+    workers: int
+    is_local: bool
+
+
+class LocalHost(Host):
+    db: DBConf
+
+class RemoteHost(Host):
+    username: str
+
 
 class CMSTools:
-    def __init__(self, hosts_conf, contest_id):
+    def __init__(self, hosts_conf: Any, contest_id: str):
         self._contest_id = contest_id
-        self._hosts_conf = yaml.load(open(hosts_conf, "r"))
+        self._hosts_conf: Any = yaml.safe_load(open(hosts_conf, "r"))
         self._hosts_conf['local']['is_local'] = True
+
         for remote in self.remotes:
             remote['is_local'] = False
 
     @property
-    def remotes(self):
-        return self._hosts_conf['remote']
+    def remotes(self) -> list[RemoteHost]:
+        return cast(list[RemoteHost], self._hosts_conf['remote'])
 
     @property
-    def local(self):
-        return self._hosts_conf['local']
+    def local(self) -> LocalHost:
+        return cast(LocalHost, self._hosts_conf['local'])
 
     @property
     def hosts(self):
         return [self.local, *self.remotes]
 
-    def remote(self, idx):
+    def remote(self, idx: int) -> RemoteHost:
         if idx < 0 or idx > len(self.remotes):
             raise Exception("Cannot find remote in configuration")
         return self.remotes[idx]
 
-    def match_hosts(self, pattern):
+    def match_hosts(self, pattern: str) -> list[Any]:
         m = re.match(r"remote(\d+)", pattern)
         if pattern in ["all", "*"]:
             return self.hosts
@@ -45,24 +64,24 @@ class CMSTools:
         else:
             raise Exception(f"Cannot match host `{pattern}`")
 
-    def exec(self, cmnd, pattern):
+    def exec(self, cmd: str, pattern: str):
         for host in self.match_hosts(pattern):
             if host['is_local']:
-                subprocess.check_call(['bash', '-c', cmnd])
+                subprocess.check_call(['bash', '-c', cmd])
             else:
-                exec_remote(host, cmnd)
+                exec_remote(host, cmd)
 
-    def stop(self, pattern):
+    def stop(self, pattern: str):
         self.exec("screen -X -S resourceService quit", pattern)
 
-    def restart(self, pattern):
+    def restart(self, pattern: str):
         self.exec(
             f"screen -X -S resourceService quit; screen -S resourceService -d -m cmsResourceService -a {self._contest_id}",
             pattern)
 
-    def copy(self, pattern, cms_conf):
+    def copy(self, pattern: str, cms_conf_path: str):
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            json.dump(self._cms_conf(cms_conf), fp, indent=4)
+            json.dump(self._cms_conf(cms_conf_path), fp, indent=4)
             fp.seek(0)
             for host in self.match_hosts(pattern):
                 if host['is_local']:
@@ -72,15 +91,15 @@ class CMSTools:
                     ip = host['ip']
                     subprocess.check_call(['scp', fp.name, f'{username}@{ip}:/usr/local/etc/cms.conf'])
 
-    def connect(self, remote):
-        m = re.match(r"remote(\d+)", remote)
+    def connect(self, remote_name: str):
+        m = re.match(r"remote(\d+)", remote_name)
         if m:
             remote = self.remote(int(m[1]))
             username = remote['username']
             ip = remote['ip']
             os.execlp('ssh', 'ssh', f'{username}@{ip}')
         else:
-            raise Exception(f"Cannot match remote `{remote}`")
+            raise Exception(f"Cannot match remote `{remote_name}`")
 
     def _core_services(self):
         local_ip = self.local['ip']
@@ -113,8 +132,8 @@ class CMSTools:
         port = db.get('port', 5432)
         return f"postgresql+psycopg2://{db['username']}:{db['password']}@{local_ip}:{port}/{db['name']}"
 
-    def _cms_conf(self, cms_conf):
-        cms_conf = json.load(open(cms_conf, 'r'))
+    def _cms_conf(self, cms_conf_path: str):
+        cms_conf = json.load(open(cms_conf_path, 'r'))
         cms_conf['core_services'] = self._core_services()
         cms_conf['database'] = self._database()
         cms_conf['rankings'] = self._rankings()
@@ -124,10 +143,10 @@ class CMSTools:
         return self._hosts_conf['rankings'] or []
 
 
-def exec_remote(host, cmnd):
+def exec_remote(host: RemoteHost, cmd: str):
     username = host['username']
     ip = host['ip']
-    subprocess.check_call(['ssh', f'{username}@{ip}', cmnd])
+    subprocess.check_call(['ssh', f'{username}@{ip}', cmd])
 
 
 def main():
