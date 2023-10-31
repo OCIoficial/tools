@@ -2,6 +2,10 @@
 
 Some tools to help with the set up of contests
 
+## create-participants
+
+Bash script to insert users directly into CMS's database.
+
 ## cms-tools
 
 Script containing some commands useful to configure CMS.
