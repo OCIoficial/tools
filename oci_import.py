@@ -101,7 +101,7 @@ def main():
     if args.teams_file != None:
         teams_csv = open(args.teams_file, 'r')
         teams_reader = csv.reader(teams_csv)
-    
+
     try:
         with SessionGen() as session:
             for row in teams_reader:
@@ -109,9 +109,13 @@ def main():
                 add_team(session, code, name)
 
             for row in users_reader:
-                (username, password, email, first_name, last_name, team_code) = row
-                if team_code == "":
-                    team_code = None
+                (username, password, email, first_name, last_name, *rest) = row
+                team_code = None
+                if len(rest) >= 1:
+                    team_code = rest[0]
+                    if team_code == "":
+                        team_code = None
+
                 add_user(session, first_name, last_name, username, password, email)
                 result = add_participation(session, args.contest_id, username, team_code)
                 if not result:
@@ -121,9 +125,8 @@ def main():
         logger.error("an error ocurred importing csv.")
         logger.error(e)
         return
-    
+
     logger.info("imported csv correctly.")
 
 if __name__ == "__main__":
     sys.exit(main())
-
