@@ -32,14 +32,14 @@ from sqlalchemy.exc import IntegrityError
 
 from cms import utf8_decoder
 from cms.db import SessionGen, User, Team, Contest, Participation
-from cmscommon.crypto import hash_password
+from cmscommon.crypto import build_password
 
 
 logger = logging.getLogger(__name__)
 
 def add_user(session, first_name, last_name, username, password, email):
     logger.info(f"creating the user {username} in the database.")
-    stored_password = hash_password(password, "bcrypt")
+    stored_password = build_password(password, "plaintext")
 
     user = User(first_name=first_name,
                 last_name=last_name,
