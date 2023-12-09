@@ -4,7 +4,7 @@ Script containing some commands useful to configure CMS in multiple hosts.
 
 ## Requirements
 
-* python >= 3.10
+* python >= 3.8
 * PyYaml
 
 ## Usage

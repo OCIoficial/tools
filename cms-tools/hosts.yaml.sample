@@ -1,45 +1,49 @@
-# We call "local" the the main host that runs the database 
+# Secret key used by cms for crypto stuff, It must be a 16 bytes long hexadecimal number.
+# You can easily create a key calling:
+# python3 -c 'from cmscommon import crypto; print(crypto.get_hex_random_key())'
+secret_key: 8e045a51e4b102ea803c06f92841a1fb
+
+# We call "local" the the main host that runs the database
 # and all the core services. cms-tools is expected to
 # run in this host.
 local:
-    # This ip should be reachable by all remote hosts.
-    # One should avoid using a public ip here so services
-    # are not exposed unnecesarily outside of the local network.
-    ip: 192.168.0.2
+  # This ip should be reachable by all remote hosts.
+  # One should avoid using a public ip here so services
+  # are not exposed unnecesarily outside of the local network.
+  ip: 192.168.0.2
 
-    # Number of workers that will run in the local host.
-    # It is recommended to run workers only on remote hosts.
-    workers: 0
+  # Number of workers that will run in the local host.
+  # It is recommended to run workers only on remote hosts.
+  workers: 0
 
-    # Make sure the database can accept connections from all the remote hosts. 
-    # You need to make two changes for that:
-    # 1) Edit postgresq.conf to listen in the internal/local address, e.g.,
-    #    if the internal/local address of is 192.168.0.2, one should add the following:
-    #    listen_addreses = '127.0.0.1,192.168.0.2'
-    # 2) Edit pg_hba.conf to accept login requests from the remote hosts, e.g.,
-    #    if all remote host are in the 192.168.0.0/24 subnet one should add a line
-    #    like so:
-    #    host cmsdb cmsuser 196.168.0.0/24 md5
-    db:
-        name: cmsdb
-        username: cmsuser
-        password: "<dbpass>"
+  # Make sure the database can accept connections from all the remote hosts.
+  # You need to make two changes for that:
+  # 1) Edit postgresq.conf to listen in the internal/local address, e.g.,
+  #    if the internal/local address of is 192.168.0.2, one should add the following:
+  #    listen_addreses = '127.0.0.1,192.168.0.2'
+  # 2) Edit pg_hba.conf to accept login requests from the remote hosts, e.g.,
+  #    if all remote host are in the 192.168.0.0/24 subnet one should add a line
+  #    like so:
+  #    host cmsdb cmsuser 196.168.0.0/24 md5
+  db:
+    name: cmsdb
+    username: cmsuser
+    password: "<dbpass>"
 
 # The list of remote hosts running workers
 remote:
-    -
-      # This ip should be reachable by the local host.
-      ip: 192.168.0.3
+  - # This ip should be reachable by the local host.
+    ip: 192.168.0.3
 
-      # Number of workers running in the host
-      workers: 2
+    # Number of workers running in the host
+    workers: 1
 
-      # Username used to connect via ssh to the host to
-      # run commands and copy files. It is recommended that
-      # every remote has the public key of the local host,
-      # otherwise you'll need to type the password for every
-      # host when running commands.
-      username: cms
+    # Username used to connect via ssh to the host to
+    # run commands and copy files. It is recommended that
+    # every remote has the public key of the local host,
+    # otherwise you'll need to type the password for every
+    # host when running commands.
+    username: cms
 
 rankings:
-    - "http://usern4me:passw0rd@localhost:8890/"
+  - "http://usern4me:passw0rd@localhost:8890/"
