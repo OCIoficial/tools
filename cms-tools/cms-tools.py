@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict, cast, List
 import yaml
 import json
 import tempfile
@@ -37,7 +37,7 @@ class CMSTools:
             remote['is_local'] = False
 
     @property
-    def remotes(self) -> list[RemoteHost]:
+    def remotes(self) -> List[RemoteHost]:
         return cast(list[RemoteHost], self._hosts_conf['remote'])
 
     @property
@@ -53,7 +53,7 @@ class CMSTools:
             raise Exception("Cannot find remote in configuration")
         return self.remotes[idx]
 
-    def match_hosts(self, pattern: str) -> list[Any]:
+    def match_hosts(self, pattern: str) -> List[Any]:
         m = re.match(r"remote(\d+)", pattern)
         if pattern in ["all", "*"]:
             return self.hosts
