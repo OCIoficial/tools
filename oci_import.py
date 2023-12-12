@@ -1,26 +1,11 @@
 #!/usr/bin/env python3
 
-# Contest Management System - http://cms-dev.github.io/
-# Copyright © 2016 Stefano Maggiolo <s.maggiolo@gmail.com>
-# Copyright © 2017-2018 Luca Wehrstedt <luca.wehrstedt@gmail.com>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """This script imports users and teams from csv files
 
 """
+from uu import Error
 import gevent.monkey
+
 gevent.monkey.patch_all()  # noqa
 
 import argparse
@@ -37,96 +22,124 @@ from cmscommon.crypto import build_password
 
 logger = logging.getLogger(__name__)
 
-def add_user(session, first_name, last_name, username, password, email):
-    logger.info(f"creating the user {username} in the database.")
-    stored_password = build_password(password, "plaintext")
 
-    user = User(first_name=first_name,
-                last_name=last_name,
-                username=username,
-                password=stored_password,
-                email=email)
-    session.add(user)
+def import_teams(session, teams):
+    for row in teams:
+        (code, name) = row
+        logger.info(f"importing team {code}.")
+        team = Team(code=code, name=name)
+        session.add(team)
 
-def add_team(session, code, name):
-    logger.info(f"creating the team {code} in the database.")
-    team = Team(code=code, name=name)
-    session.add(team)
 
-def add_participation(session, contest_id, username, team_code):
-    logger.info(f"creating the user {username} participation in the contest.")
+def import_users(session, users):
+    for row in users:
+        (username, password, email, first_name, last_name, *rest) = row
+        logger.info(f"importing user {username}.")
 
-    user = \
-        session.query(User).filter(User.username == username).first()
-    if user is None:
-        logger.error("no user with username `%s' found.", username)
-        return False
-    contest = Contest.get_from_id(contest_id, session)
-    if contest is None:
-        logger.error("no contest with id `%s' found.", contest_id)
-        return False
-    team = None
+        stored_password = build_password(password, "plaintext")
+
+        user = User(
+            first_name=first_name,
+            last_name=last_name,
+            username=username,
+            password=stored_password,
+            email=email,
+        )
+        session.add(user)
+
+
+def get_team_or_none(session, cells):
+    team_code = None
+    if len(cells) >= 1:
+        team_code = cells[0]
+        if team_code == "":
+            team_code = None
+
     if team_code is not None:
-        team = \
-            session.query(Team).filter(Team.code == team_code).first()
-        if team is None:
-            logger.error("no team with code `%s' found.", team_code)
-            return False
+        return session.query(Team).filter(Team.code == team_code).one()
+    else:
+        return None
 
-    participation = Participation(
-        user=user,
-        contest=contest,
-        team=team)
-    session.add(participation)
 
-    logger.info(f"participation for {username} added.")
-    return True
+def import_participations(session, users, contest_name):
+    contest = session.query(Contest).filter(Contest.name == contest_name).one()
+
+    for row in users:
+        (username, password, _email, _first_name, _last_name, *rest) = row
+        stored_password = build_password(password, "plaintext")
+        team = get_team_or_none(session, rest)
+        user = session.query(User).filter(User.username == username).one()
+
+        logger.info(f"importing participation for {username}.")
+
+        participation = Participation(
+            user=user,
+            contest=contest,
+            password=stored_password,
+            team=team,
+        )
+        session.add(participation)
+
 
 def main():
-    """Parse arguments and launch process.
-
-    """
+    """Parse arguments and launch process."""
     parser = argparse.ArgumentParser(description="Import .csv into CMS")
-    parser.add_argument("users_file", action="store", type=utf8_decoder,
-                        help="csv with users to import with format: (username, password, email, first_name, last_name, team_code)")
-    parser.add_argument("--teams_file", action="store", type=utf8_decoder,
-                        help="csv with teams to import with format: (team_code, name)", required=False)
-    parser.add_argument("contest_id", action="store", type=utf8_decoder,
-                        help="contest to use")
-    args = parser.parse_args()
+    subparsers = parser.add_subparsers(dest="command")
 
-    users_csv = open(args.users_file, 'r')
-    users_reader = csv.reader(users_csv)
-    teams_reader = []
-    if args.teams_file != None:
-        teams_csv = open(args.teams_file, 'r')
-        teams_reader = csv.reader(teams_csv)
+    # Import Teams
+    import_teams_parser = subparsers.add_parser("import-teams")
+    import_teams_parser.add_argument(
+        "teams_file",
+        type=utf8_decoder,
+        help="csv with teams to import with format: (team_code, name)",
+        metavar="teams-file",
+    )
+
+    # Import Users
+    import_users_parser = subparsers.add_parser("import-users")
+    import_users_parser.add_argument(
+        "users_file",
+        type=utf8_decoder,
+        help="csv with users to import with format: (username, password, email, first_name, last_name)",
+        metavar="users-file",
+    )
+
+    # Import participations
+    import_participations_parser = subparsers.add_parser("import-participations")
+    import_participations_parser.add_argument(
+        "users_file",
+        help="csv with users to import with format: (username, password, email, first_name, last_name, team_code)\nThe columns email, first_name and last_name are ignored. They are included to be compatible with the format for importing users",
+        metavar="users-file",
+    )
+    import_participations_parser.add_argument(
+        "contest",
+        action="store",
+        type=utf8_decoder,
+        help="the name of the contest",
+    )
+
+    args = parser.parse_args()
 
     try:
         with SessionGen() as session:
-            for row in teams_reader:
-                (code, name) = row
-                add_team(session, code, name)
+            if args.command == "import-teams":
+                teams = list(csv.reader(open(args.teams_file, "r")))
+                import_teams(session, teams)
+            elif args.command == "import-users":
+                users = list(csv.reader(open(args.users_file, "r")))
+                import_users(session, users)
+            elif args.command == "import-participations":
+                users = list(csv.reader(open(args.users_file, "r")))
+                import_participations(session, users, args.contest)
 
-            for row in users_reader:
-                (username, password, email, first_name, last_name, *rest) = row
-                team_code = None
-                if len(rest) >= 1:
-                    team_code = rest[0]
-                    if team_code == "":
-                        team_code = None
-
-                add_user(session, first_name, last_name, username, password, email)
-                result = add_participation(session, args.contest_id, username, team_code)
-                if not result:
-                    return
             session.commit()
     except IntegrityError as e:
         logger.error("an error ocurred importing csv.")
         logger.error(e)
         return
 
-    logger.info("imported csv correctly.")
+    logger.info("csv imported successfully.")
+
 
 if __name__ == "__main__":
     sys.exit(main())
