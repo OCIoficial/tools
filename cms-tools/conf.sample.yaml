@@ -1,5 +1,6 @@
-# Secret key used by cms for crypto stuff, It must be a 16 bytes long hexadecimal number.
-# You can easily create a key calling:
+# Secret key used by cms for crypto stuff, It must be a 16 bytes long
+# hexadecimal number.
+# You can create a key by calling:
 # python3 -c 'import os; print(os.urandom(16).hex())'
 secret_key: 8e045a51e4b102ea803c06f92841a1fb
 
@@ -10,7 +11,8 @@ identity_file: ~/.ssh/identity.pem
 # Configuration of the main host that runs core services and
 # postgres.
 main:
-  # Private IP in the local network
+  # Private IP of the main host. Workers should be able to access this ip
+  # in the local network
   ip: 172.31.56.18
 
   # Number of workers that will run in the main host. This should
@@ -23,12 +25,15 @@ main:
     ip: 52.90.13.4
     username: ubuntu
 
+  # Credentials to connect to the database. The database is assumed
+  # to be running in the main host.
   db:
     name: cmsdb
     username: cmsuser
     password: "<dbpass>"
 
-# The list of remote hosts running workers.
+# The list of remote hosts running workers. You can leave this list
+# empty when testing without workers.
 workers:
   - ip: 192.168.0.3
     workers: 1
