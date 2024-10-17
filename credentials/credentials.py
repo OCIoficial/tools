@@ -1,10 +1,12 @@
 #! /usr/bin/python
 
 # Format of expected csv
-# user, pass, first_name, last_name, team, site
+# user, pass, email, first_name, last_name, team, site
 
-# team = is what we create corresponds to the team we create in cms, this is typically the city.
-# site = is where they are participating, that can be different from the team.
+# The site is optional and only required if the `--by-site` flag is used
+
+# team = is corresponds to the team we create in cms, this is typically the city.
+# site = is where they are participating, either a university or online.
 
 import csv
 import argparse
@@ -48,29 +50,29 @@ FOOTER = r"""
 """
 
 
-def group_by(csv_reader, idx):
+def row_to_dict(row):
+    return {
+        "user": row[0].strip(),
+        "pass": row[1].strip(),
+        "email": row[2].strip(),
+        "first_name": row[3].strip(),
+        "last_name": row[4].strip(),
+        "team": row[5].strip(),
+    }
+
+
+def group_by_site(csv_reader):
     groups = {}
     for row in csv_reader:
-        groups.setdefault(row[idx], []).append(
-            {
-                "full_name": row[3].strip() + " " + row[4].strip(),
-                "user": row[0],
-                "pass": row[1],
-            }
-        )
+        site = row[6]
+        groups.setdefault(site, []).append(row_to_dict(row))
     return groups
 
 
 def get_users(csv_reader):
     users = []
     for row in csv_reader:
-        users.append(
-            {
-                "full_name": row[3].strip() + " " + row[4].strip(),
-                "user": row[0],
-                "pass": row[1],
-            }
-        )
+        users.append(row_to_dict(row))
     return users
 
 
@@ -82,9 +84,9 @@ def generate_pdf(phase, users, dest):
         with open(texfile_path, mode="w") as texfile:
             texfile.write(HEADER.substitute({"phase": phase}))
             for user in users:
+                fullname = f"{user["first_name"]} {user["last_name"]}".title()
                 texfile.write(
-                    r"\entry{%s}{%s}{%s}"
-                    % (user["full_name"], user["user"], user["pass"])
+                    r"\entry{%s}{%s}{%s}" % (fullname, user["user"], user["pass"])
                 )
                 texfile.write("\n\\hrule\n")
             texfile.write(FOOTER)
@@ -120,7 +122,7 @@ def main():
         csv_reader = csv.reader(csvfile)
 
         if args.by_site:
-            groups = group_by(csv_reader, 6)
+            groups = group_by_site(csv_reader)
             for group, users in groups.items():
                 generate_pdf(phase, users, group)
         else:
