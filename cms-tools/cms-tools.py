@@ -63,7 +63,7 @@ class Host:
         self._print_cmd(cmd)
         os.execlp("ssh", *cmd)
 
-    def _print_cmd(self, cmd: list[str]) -> None:
+    def _print_cmd(self, cmd: List[str]) -> None:
         print("$", " ".join(cmd))
 
 
@@ -191,8 +191,8 @@ def main():
         description="""
              cms-tools is a script containing a set of useful commands to configure cms contests
              in multiple hosts. The script expects a configuration file containing the description
-             of the hosts. See the example conf.yaml for a more detailed description.
-             All comands expect a positional argument specifying in which host they should run.
+             of the hosts. See the sample conf.sample.yaml for a more detailed description.
+             All commands expect a positional argument specifying in which host they should run.
              This argument can be either `all` (run in all hosts), `main` (run in main host)
              or `workerX` where X is the index (starting from 0) of a worker as described
              in the configuration file. This command is optional and defaulted to `all` for
@@ -241,7 +241,7 @@ def main():
     # stop resource service
     stop_parser = subparsers.add_parser(
         "stop-resource-service",
-        help="""Stop the services runing on the host(s). This just kills the screen session
+        help="""Stop the services running on the host(s). This just kills the screen session
         running cmsResourceService.""",
     )
     stop_parser.add_argument("host", nargs="?", default="all")

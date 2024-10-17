@@ -4,14 +4,17 @@
 # python3 -c 'import os; print(os.urandom(16).hex())'
 secret_key: 8e045a51e4b102ea803c06f92841a1fb
 
-# Identity file used to connect via ssh. This is the same for
-# all hosts.
+# Identity file used to connect via ssh.
+# The same identity file is used to connect to all hosts. If you are
+# already connected  to the main host via ssh what you can do is to use
+# the identity file used to connect, i.e., copy it into the main host.
+# This assume the same identity file has access to the workers. Remember
+# to set the permissions of the identity file to 600.
 identity_file: ~/.ssh/identity.pem
 
-# Configuration of the main host that runs core services and
-# postgres.
+# Configuration of the main host that runs the core services and postgres.
 main:
-  # Private IP of the main host. Workers should be able to access this ip
+  # Private IP of the main host. Workers should be able to reach this ip
   # in the local network
   ip: 172.31.56.18
 
@@ -20,7 +23,10 @@ main:
   # testing without workers.
   workers: 0
 
-  # Settings to connect via ssh to host
+  # Settings to connect to the host via ssh. Note that the host
+  # must be able to accept ssh connections to this IP. If the security
+  # group is only configured to received ssh connections to the public
+  # IP you should use that one.
   ssh:
     ip: 52.90.13.4
     username: ubuntu
