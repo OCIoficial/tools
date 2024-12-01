@@ -1,6 +1,7 @@
 import csv
 import datetime
 from enum import Enum
+from io import StringIO
 from pathlib import Path
 from typing import ClassVar
 
@@ -9,6 +10,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import HorizontalGroup, Vertical
+from textual.events import Paste
 from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, DirectoryTree, Footer, Header, Input, Label, Select
@@ -67,7 +69,7 @@ class FilePicker(ModalScreen[Path | None]):
 class Credentials(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("Q,q", "quit", "Quit"),
-        Binding("O,o", "load_csv", show=False),
+        Binding("O,o", "open_csv_file", show=False),
         Binding("G,g", "generate_pdf", show=False),
         Binding("D,d", "delete_column", "Delete column"),
         Binding(
@@ -119,7 +121,7 @@ class Credentials(App[None]):
                     id="load-csv",
                 )
                 yield Button(
-                    self._generate_pdf_label(),
+                    self.generate_pdf_label(),
                     variant="primary",
                     id="generate-pdf",
                 )
@@ -127,11 +129,18 @@ class Credentials(App[None]):
         yield Header()
 
     @work()
-    async def action_load_csv(self) -> None:
+    async def action_open_csv_file(self) -> None:
         path = await self.push_screen(FilePicker(), wait_for_dismiss=True)
         if not path:
             return
-        match _read_csv(path):
+        match _read_csv_file(path):
+            case Exception() as exc:
+                self.notify(f"error loading csv: {exc} ", severity="error")
+            case list() as data:
+                self.data = _ensure_min_columns(data, len(Keys))
+
+    def on_paste(self, ev: Paste) -> None:
+        match _read_csv_from_paste(ev.text):
             case Exception() as exc:
                 self.notify(f"error loading csv: {exc} ", severity="error")
             case list() as data:
@@ -157,7 +166,7 @@ class Credentials(App[None]):
     def action_toggle_group_by_site(self) -> None:
         self._group_by_site = not self._group_by_site
         self._set_column = self._table.cursor_column
-        self.query_one("#generate-pdf", Button).label = self._generate_pdf_label()
+        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
         self.refresh_table()
 
     def watch_data(self) -> None:
@@ -183,7 +192,7 @@ class Credentials(App[None]):
             case "generate-pdf":
                 self.action_generate_pdf()
             case "load-csv":
-                self.action_load_csv()
+                self.action_open_csv_file()
             case _:
                 pass
 
@@ -204,7 +213,7 @@ class Credentials(App[None]):
                 self.notify(f"error building pdfs: {exc} ", severity="error")
         self.refresh()
 
-    def _generate_pdf_label(self) -> str:
+    def generate_pdf_label(self) -> str:
         return "Generate PDFs (G)" if self._group_by_site else "Generate PDF (G)"
 
 
@@ -220,11 +229,28 @@ def _delete_column(data: list[list[str]], col: int) -> list[list[str]]:
     return [row[:col] + row[col + 1 :] for row in data]
 
 
-def _read_csv(path: Path) -> list[list[str]] | Exception:
+def _read_csv_file(path: Path) -> list[list[str]] | Exception:
     try:
         with path.open() as csvfile:
             reader = csv.reader(csvfile)
             return list(reader)
+    except Exception as e:
+        return e
+
+
+def _read_csv_from_paste(text: str) -> list[list[str]] | Exception:
+    try:
+        csvfile = StringIO(text)
+
+        sample = csvfile.read(1024)
+        csvfile.seek(0)
+
+        sniffer = csv.Sniffer()
+        dialect = sniffer.sniff(sample)
+        csvfile.seek(0)
+
+        reader = csv.reader(csvfile, dialect)
+        return list(reader)
     except Exception as e:
         return e
 
