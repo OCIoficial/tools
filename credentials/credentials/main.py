@@ -4,7 +4,6 @@ from io import StringIO
 from pathlib import Path
 from typing import ClassVar
 
-from rich.text import Text
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
@@ -66,11 +65,8 @@ class FilePicker(ModalScreen[Path | None]):
         self.dismiss(message.path)
 
 
-class Credentials(App[None]):
+class Table(VimDataTable[str], can_focus=True):
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("q", "quit", "Quit"),
-        Binding("o", "open_csv_file", "Open CSV file", show=False),
-        Binding("g", "generate_pdf", "Generate PDF", show=False),
         Binding("d", "delete_column", "Delete column"),
         Binding(
             "ctrl+left,ctrl+h",
@@ -86,13 +82,66 @@ class Credentials(App[None]):
         ),
     ]
 
-    CSS_PATH = "credentials.tcss"
+    headers: reactive[list[str]] = reactive([], init=False)
+    data: reactive[list[list[str]]] = reactive([], init=False)
 
-    data: reactive[list[list[str]]] = reactive([])
+    def __init__(self) -> None:
+        super().__init__(cursor_type="column", zebra_stripes=True)
+        self._set_cursor: int | None = None
+
+    def watch_headers(self) -> None:
+        self._set_cursor = self.cursor_column
+        self.refresh_table()
+
+    def watch_data(self) -> None:
+        self.refresh_table()
+
+    def refresh_table(self) -> None:
+        self.clear(columns=True)
+
+        # Add Columns
+        for name in self.headers:
+            self.add_column(name)
+        mincols = max((len(row) for row in self.data), default=0)
+        for _ in range(max(0, mincols - len(self.headers))):
+            self.add_column("")
+
+        # Add Data
+        self.add_rows(self.data)
+
+        self.move_cursor(column=self._set_cursor)
+        self._set_cursor = None
+
+    def action_delete_column(self) -> None:
+        col = self.cursor_column
+        self._set_cursor = col
+        self.data = _delete_column(self.data, col)
+
+    def action_move_column_right(self) -> None:
+        col = self.cursor_column
+        if col < len(self.data) - 1:
+            self._set_cursor = col + 1
+            self.data = _swap_columns(self.data, col, col + 1)
+
+    def action_move_column_left(self) -> None:
+        col = self.cursor_column
+        if col > 0:
+            self._set_cursor = col - 1
+            self.data = _swap_columns(self.data, col - 1, col)
+
+
+class Credentials(App[None]):
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("q", "quit", "Quit"),
+        Binding("o", "open_csv_file", "Open CSV file", show=False),
+        Binding("g", "generate_pdf", "Generate PDF", show=False),
+    ]
+
+    CSS_PATH = "credentials.tcss"
 
     def __init__(self) -> None:
         super().__init__()
-        self._table = VimDataTable[str](cursor_type="column", zebra_stripes=True)
+        self._table = Table()
         self._phase_selector = Select(
             [("Regional", "Regional"), ("Final", "Final")],
             value="Regional",
@@ -103,11 +152,10 @@ class Credentials(App[None]):
         self._group_by_site = True
 
     def on_mount(self) -> None:
-        self.add_columns(0)
-        self._table.focus()
+        self._table.headers = self.columns()
 
     def compose(self) -> ComposeResult:
-        yield Footer()
+        yield Header()
         with Vertical(classes="container"):
             with HorizontalGroup():
                 yield Label("Group by site: ", classes="label")
@@ -131,7 +179,7 @@ class Credentials(App[None]):
                     id="generate-pdf",
                 )
             yield self._table
-        yield Header()
+        yield Footer()
 
     @work()
     async def action_open_csv_file(self) -> None:
@@ -142,55 +190,21 @@ class Credentials(App[None]):
             case Exception() as exc:
                 self.notify(f"error loading csv: {exc} ", severity="error")
             case list() as data:
-                self.data = _ensure_min_columns(data, len(Keys))
-
-    def on_switch_changed(self, ev: Switch.Changed) -> None:
-        self._group_by_site = ev.value
-        self._set_column = self._table.cursor_column
-        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
-        self.refresh_table()
+                self._table.data = _ensure_min_columns(data, len(Keys))
+                self._table.focus()
 
     def on_paste(self, ev: Paste) -> None:
         match _read_csv_from_paste(ev.text):
             case Exception() as exc:
                 self.notify(f"error loading csv: {exc} ", severity="error")
             case list() as data:
-                self.data = _ensure_min_columns(data, len(Keys))
+                self._table.data = _ensure_min_columns(data, len(Keys))
+                self._table.focus()
 
-    def action_delete_column(self) -> None:
-        col = self._table.cursor_column
-        self._set_column = col
-        self.data = _delete_column(self.data, col)
-
-    def action_move_column_right(self) -> None:
-        col = self._table.cursor_column
-        if col < len(self.data) - 1:
-            self._set_column = col + 1
-            self.data = _swap_columns(self.data, col, col + 1)
-
-    def action_move_column_left(self) -> None:
-        col = self._table.cursor_column
-        if col > 0:
-            self._set_column = col - 1
-            self.data = _swap_columns(self.data, col - 1, col)
-
-    def watch_data(self) -> None:
-        self.refresh_table()
-
-    def refresh_table(self) -> None:
-        self._table.clear(columns=True)
-        self.add_columns(max((len(r) for r in self.data), default=0))
-        self._table.add_rows(self.data)
-        self._table.move_cursor(column=self._set_column)
-        self._set_column = None
-
-    def add_columns(self, min_columns: int) -> None:
-        for k in Keys:
-            name = "" if not self._group_by_site and k == Keys.site else COLUMN_NAMES[k]
-            self._table.add_column(Text(name))
-
-        for _ in range(max(0, min_columns - len(Keys))):
-            self._table.add_column("")
+    def on_switch_changed(self, ev: Switch.Changed) -> None:
+        self._group_by_site = ev.value
+        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
+        self._table.headers = self.columns()
 
     def on_button_pressed(self, ev: Button.Pressed) -> None:
         match ev.button.id:
@@ -199,16 +213,16 @@ class Credentials(App[None]):
             case "load-csv":
                 self.action_open_csv_file()
             case _:
-                pass
+                ...
 
     def action_generate_pdf(self) -> None:
         year = self.query_one("#year", Input).value
         phase = f"{self._phase_selector.value} {year}"
 
         if self._group_by_site:
-            groups = _group_by_site(self.data)
+            groups = _group_by_site(self._table.data)
         else:
-            groups = {phase: _data_to_users(self.data)}
+            groups = {phase: _data_to_users(self._table.data)}
 
         if not groups:
             return
@@ -231,8 +245,11 @@ class Credentials(App[None]):
     def generate_pdf_label(self) -> str:
         return "Generate PDFs (g)" if self._group_by_site else "Generate PDF (g)"
 
+    def columns(self) -> list[str]:
+        return [COLUMN_NAMES[k] for k in Keys if self._group_by_site or k != Keys.site]
 
-def _swap_columns(data: list[list[str]], col1: int, col2: int) -> list[list[str]]:
+
+def _swap_columns[T](data: list[list[T]], col1: int, col2: int) -> list[list[T]]:
     data = [row[:] for row in data]
     for row in data:
         if 0 <= col1 < len(row) and 0 <= col2 < len(row):
@@ -241,13 +258,10 @@ def _swap_columns(data: list[list[str]], col1: int, col2: int) -> list[list[str]
 
 
 def _pluralize(s: str, c: int) -> str:
-    if c == 1:
-        return s
-    else:
-        return f"{s}s"
+    return s if c == 1 else f"{s}s"
 
 
-def _delete_column(data: list[list[str]], col: int) -> list[list[str]]:
+def _delete_column[T](data: list[list[T]], col: int) -> list[list[T]]:
     return [row[:col] + row[col + 1 :] for row in data]
 
 
