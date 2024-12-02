@@ -3,8 +3,9 @@ import shutil
 import string
 import subprocess
 import tempfile
-from dataclasses import dataclass
 from pathlib import Path
+
+from credentials.types import User
 
 HEADER = string.Template(
     r"""
@@ -14,7 +15,7 @@ HEADER = string.Template(
 \usepackage[left=0pt,right=0pt,top=1cm,bottom=1cm]{geometry}
 \usepackage{csvsimple}
 
-\newcommand{\logo}{\includegraphics[width=5cm]{logo.eps}}
+\newcommand{\logo}{\includegraphics[width=5cm]{logo.png}}
 \newcommand{\phase}{\footnotesize $phase}
 
 \newcommand{\entry}[3]{
@@ -37,14 +38,6 @@ FOOTER = r"""
 \end{center}
 \end{document}
 """
-
-
-@dataclass(kw_only=True, frozen=True)
-class User:
-    username: str
-    password: str
-    first_name: str
-    last_name: str
 
 
 def generate_pdf(phase: str, users: list[User], name: str) -> None:

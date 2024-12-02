@@ -1,6 +1,5 @@
 import csv
 import datetime
-from enum import Enum
 from io import StringIO
 from pathlib import Path
 from typing import ClassVar
@@ -15,17 +14,9 @@ from textual.reactive import reactive
 from textual.screen import ModalScreen
 from textual.widgets import Button, DirectoryTree, Footer, Header, Input, Label, Select
 
-from credentials.pdf import User, generate_pdf
+from credentials import typstgen
+from credentials.types import Keys, User
 from credentials.vim import VimDataTable, VimDirectoryTree
-
-
-class Keys(Enum):
-    username = 0
-    password = 1
-    first_name = 2
-    last_name = 3
-    site = 4
-
 
 COLUMN_NAMES: dict[Keys, str] = {
     Keys.username: "Username",
@@ -208,7 +199,7 @@ class Credentials(App[None]):
         with self.suspend():
             try:
                 for name, users in groups.items():
-                    generate_pdf(phase, users, name)
+                    typstgen.generate_pdf(phase, users, name)
             except Exception as exc:
                 self.notify(f"error building pdfs: {exc} ", severity="error")
         self.refresh()
