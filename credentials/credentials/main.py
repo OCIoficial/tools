@@ -12,7 +12,16 @@ from textual.containers import HorizontalGroup, Vertical
 from textual.events import Paste
 from textual.reactive import reactive
 from textual.screen import ModalScreen
-from textual.widgets import Button, DirectoryTree, Footer, Header, Input, Label, Select
+from textual.widgets import (
+    Button,
+    DirectoryTree,
+    Footer,
+    Header,
+    Input,
+    Label,
+    Select,
+    Switch,
+)
 
 from credentials import typstgen
 from credentials.types import Keys, User
@@ -29,8 +38,8 @@ COLUMN_NAMES: dict[Keys, str] = {
 
 class FilePicker(ModalScreen[Path | None]):
     BINDINGS: ClassVar[list[BindingType]] = [
-        ("Q,q", "quit", "Quit"),
-        ("P,p", "goto_parent", "Go to parent"),
+        Binding("q", "quit", "Quit"),
+        Binding("p", "goto_parent", "Go to parent"),
     ]
 
     def __init__(self) -> None:
@@ -59,10 +68,10 @@ class FilePicker(ModalScreen[Path | None]):
 
 class Credentials(App[None]):
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("Q,q", "quit", "Quit"),
-        Binding("O,o", "open_csv_file", show=False),
-        Binding("G,g", "generate_pdf", show=False),
-        Binding("D,d", "delete_column", "Delete column"),
+        Binding("q", "quit", "Quit"),
+        Binding("o", "open_csv_file", "Open CSV file", show=False),
+        Binding("g", "generate_pdf", "Generate PDF", show=False),
+        Binding("d", "delete_column", "Delete column"),
         Binding(
             "ctrl+left,ctrl+h",
             "move_column_left",
@@ -75,7 +84,6 @@ class Credentials(App[None]):
             "Move column right",
             key_display="^→/^l",
         ),
-        Binding("S,s", "toggle_group_by_site", "Toggle group by site"),
     ]
 
     CSS_PATH = "credentials.tcss"
@@ -102,12 +110,18 @@ class Credentials(App[None]):
         yield Footer()
         with Vertical(classes="container"):
             with HorizontalGroup():
+                yield Label("Group by site: ", classes="label")
+                yield Switch(
+                    value=True,
+                    animate=False,
+                    tooltip="Whether to generate a separate PDF per Site",
+                )
                 yield Label("Phase: ", classes="label")
                 yield self._phase_selector
                 yield Label("Year: ", classes="label")
                 yield Input(str(datetime.date.today().year), id="year")
                 yield Button(
-                    "Open CSV (O)",
+                    "Open CSV (o)",
                     variant="primary",
                     id="load-csv",
                 )
@@ -129,6 +143,12 @@ class Credentials(App[None]):
                 self.notify(f"error loading csv: {exc} ", severity="error")
             case list() as data:
                 self.data = _ensure_min_columns(data, len(Keys))
+
+    def on_switch_changed(self, ev: Switch.Changed) -> None:
+        self._group_by_site = ev.value
+        self._set_column = self._table.cursor_column
+        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
+        self.refresh_table()
 
     def on_paste(self, ev: Paste) -> None:
         match _read_csv_from_paste(ev.text):
@@ -153,12 +173,6 @@ class Credentials(App[None]):
         if col > 0:
             self._set_column = col - 1
             self.data = _swap_columns(self.data, col - 1, col)
-
-    def action_toggle_group_by_site(self) -> None:
-        self._group_by_site = not self._group_by_site
-        self._set_column = self._table.cursor_column
-        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
-        self.refresh_table()
 
     def watch_data(self) -> None:
         self.refresh_table()
@@ -196,16 +210,26 @@ class Credentials(App[None]):
         else:
             groups = {phase: _data_to_users(self.data)}
 
+        if not groups:
+            return
+
         with self.suspend():
+            n = len(groups)
             try:
                 for name, users in groups.items():
                     typstgen.generate_pdf(phase, users, name)
+                self.notify(
+                    f"{n} {_pluralize("PDF", n)} successfully generated",
+                )
             except Exception as exc:
-                self.notify(f"error building pdfs: {exc} ", severity="error")
+                self.notify(
+                    f"error generating {_pluralize("PDF", n)}: {exc} ",
+                    severity="error",
+                )
         self.refresh()
 
     def generate_pdf_label(self) -> str:
-        return "Generate PDFs (G)" if self._group_by_site else "Generate PDF (G)"
+        return "Generate PDFs (g)" if self._group_by_site else "Generate PDF (g)"
 
 
 def _swap_columns(data: list[list[str]], col1: int, col2: int) -> list[list[str]]:
@@ -214,6 +238,13 @@ def _swap_columns(data: list[list[str]], col1: int, col2: int) -> list[list[str]
         if 0 <= col1 < len(row) and 0 <= col2 < len(row):
             row[col1], row[col2] = row[col2], row[col1]
     return data
+
+
+def _pluralize(s: str, c: int) -> str:
+    if c == 1:
+        return s
+    else:
+        return f"{s}s"
 
 
 def _delete_column(data: list[list[str]], col: int) -> list[list[str]]:
