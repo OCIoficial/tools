@@ -46,7 +46,7 @@ def generate_pdf(phase: str, users: list[User], name: str) -> None:
         for user in users:
             fullname = f"{user.first_name} {user.last_name}".title()
             entries += f"#entry([{fullname}], [{user.username}], [{user.password}])\n"
-            entries += "#line(length: 100%)\n"
+            entries += '#line(length: 100%, stroke: (dash: "dashed"))\n'
 
         path = Path(tempdir) / "main.typ"
         with path.open(mode="w") as typstfile:

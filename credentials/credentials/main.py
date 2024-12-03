@@ -1,5 +1,6 @@
 import csv
 import datetime
+from collections.abc import Callable, Iterable
 from io import StringIO
 from pathlib import Path
 from typing import ClassVar
@@ -26,7 +27,7 @@ from credentials import typstgen
 from credentials.types import Keys, User
 from credentials.vim import VimDataTable, VimDirectoryTree
 
-COLUMN_NAMES: dict[Keys, str] = {
+HEADER_NAMES: dict[Keys, str] = {
     Keys.username: "Username",
     Keys.password: "Password",
     Keys.first_name: "First Names",
@@ -87,47 +88,42 @@ class Table(VimDataTable[str], can_focus=True):
 
     def __init__(self) -> None:
         super().__init__(cursor_type="column", zebra_stripes=True)
-        self._set_cursor: int | None = None
+
+    def validate_data(self, data: list[list[str]]) -> list[list[str]]:
+        return _ensure_min_columns(data, len(self.headers), "")
 
     def watch_headers(self) -> None:
-        self._set_cursor = self.cursor_column
-        self.refresh_table()
+        self._update_table(self.cursor_column)
 
     def watch_data(self) -> None:
-        self.refresh_table()
-
-    def refresh_table(self) -> None:
-        self.clear(columns=True)
-
-        # Add Columns
-        for name in self.headers:
-            self.add_column(name)
-        mincols = max((len(row) for row in self.data), default=0)
-        for _ in range(max(0, mincols - len(self.headers))):
-            self.add_column("")
-
-        # Add Data
-        self.add_rows(self.data)
-
-        self.move_cursor(column=self._set_cursor)
-        self._set_cursor = None
+        self._update_table()
 
     def action_delete_column(self) -> None:
         col = self.cursor_column
-        self._set_cursor = col
-        self.data = _delete_column(self.data, col)
+        self.set_reactive(Table.data, _delete_column(self.data, col))
+        self._update_table(col)
 
     def action_move_column_right(self) -> None:
         col = self.cursor_column
-        if col < len(self.data) - 1:
-            self._set_cursor = col + 1
-            self.data = _swap_columns(self.data, col, col + 1)
+        if col + 1 < len(self.data):
+            self.set_reactive(Table.data, _swap_columns(self.data, col, col + 1))
+            self._update_table(col + 1)
 
     def action_move_column_left(self) -> None:
         col = self.cursor_column
         if col > 0:
-            self._set_cursor = col - 1
-            self.data = _swap_columns(self.data, col - 1, col)
+            self.set_reactive(Table.data, _swap_columns(self.data, col - 1, col))
+            self._update_table(col - 1)
+
+    def _update_table(self, cursor: int | None = None) -> None:
+        self.clear(columns=True)
+
+        mincols = max(map(len, self.data), default=0)
+        self.add_columns(*_pad_iter(self.headers, mincols, str))
+
+        self.add_rows(self.data)
+
+        self.move_cursor(column=cursor)
 
 
 class Credentials(App[None]):
@@ -148,11 +144,10 @@ class Credentials(App[None]):
             allow_blank=False,
             id="phase",
         )
-        self._set_column: int | None = None
         self._group_by_site = True
 
     def on_mount(self) -> None:
-        self._table.headers = self.columns()
+        self._table.headers = self._get_headers()
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -174,7 +169,7 @@ class Credentials(App[None]):
                     id="load-csv",
                 )
                 yield Button(
-                    self.generate_pdf_label(),
+                    self._get_pdf_label(),
                     variant="primary",
                     id="generate-pdf",
                 )
@@ -184,27 +179,24 @@ class Credentials(App[None]):
     @work()
     async def action_open_csv_file(self) -> None:
         path = await self.push_screen(FilePicker(), wait_for_dismiss=True)
-        if not path:
-            return
-        match _read_csv_file(path):
-            case Exception() as exc:
-                self.notify(f"error loading csv: {exc} ", severity="error")
-            case list() as data:
-                self._table.data = _ensure_min_columns(data, len(Keys))
-                self._table.focus()
+        if path:
+            self._update_data(_read_csv_file(path))
 
     def on_paste(self, ev: Paste) -> None:
-        match _read_csv_from_paste(ev.text):
+        self._update_data(_read_csv_from_paste(ev.text))
+
+    def _update_data(self, data: list[list[str]] | Exception) -> None:
+        match data:
             case Exception() as exc:
                 self.notify(f"error loading csv: {exc} ", severity="error")
             case list() as data:
-                self._table.data = _ensure_min_columns(data, len(Keys))
+                self._table.data = data
                 self._table.focus()
 
     def on_switch_changed(self, ev: Switch.Changed) -> None:
         self._group_by_site = ev.value
-        self.query_one("#generate-pdf", Button).label = self.generate_pdf_label()
-        self._table.headers = self.columns()
+        self.query_one("#generate-pdf", Button).label = self._get_pdf_label()
+        self._table.headers = self._get_headers()
 
     def on_button_pressed(self, ev: Button.Pressed) -> None:
         match ev.button.id:
@@ -242,11 +234,11 @@ class Credentials(App[None]):
                 )
         self.refresh()
 
-    def generate_pdf_label(self) -> str:
+    def _get_pdf_label(self) -> str:
         return "Generate PDFs (g)" if self._group_by_site else "Generate PDF (g)"
 
-    def columns(self) -> list[str]:
-        return [COLUMN_NAMES[k] for k in Keys if self._group_by_site or k != Keys.site]
+    def _get_headers(self) -> list[str]:
+        return [HEADER_NAMES[k] for k in Keys if self._group_by_site or k != Keys.site]
 
 
 def _swap_columns[T](data: list[list[T]], col1: int, col2: int) -> list[list[T]]:
@@ -291,10 +283,14 @@ def _read_csv_from_paste(text: str) -> list[list[str]] | Exception:
         return e
 
 
-def _ensure_min_columns(data: list[list[str]], columns: int) -> list[list[str]]:
+def _ensure_min_columns[T](
+    data: list[list[T]],
+    columns: int,
+    default: T,
+) -> list[list[T]]:
     for row in data:
         if len(row) < columns:
-            row.extend([""] * (columns - len(row)))
+            row.extend([default] * (columns - len(row)))
     return data
 
 
@@ -316,3 +312,8 @@ def _row_to_user(row: list[str]) -> User:
         last_name=row[Keys.last_name.value],
         password=row[Keys.password.value],
     )
+
+
+def _pad_iter[T](ls: list[T], n: int, f: Callable[[], T]) -> Iterable[T]:
+    yield from ls
+    yield from (f() for _ in range(n - len(ls)))
