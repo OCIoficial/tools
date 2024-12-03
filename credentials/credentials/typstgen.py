@@ -8,32 +8,35 @@ import typst
 from credentials.types import User
 
 TEMPLATE = string.Template("""
-#set page("us-letter", margin: (left: 0pt, right: 0pt, top: 0em, bottom: 0pt))
+#set page("us-letter", margin: 0pt)
 #set text(font: "New Computer Modern")
+
+#let logo = image("logo.png", width: 5cm)
 
 #let entry(fullname, username, password) = {
   pad(
     x: 50pt,
-    y: 12pt,
-    grid(
-      columns: (5cm, 1fr),
-      rows: (auto),
-      inset: 10pt,
-      align: horizon,
-      stack(
-        spacing: 10pt,
-        [$phase],
-        image("logo.png"),
-      ),
-      table(
-        columns: (1.8fr, 1fr, 1fr),
-        rows: (auto, 3em),
-        align: horizon + center,
-        table.header([nombre], [usuario], [contraseña]),
-        fullname, username, password,
-      ),
+    y: 13pt,
+    table(
+      columns: (1.8fr, 1.8fr, 1fr, 1fr),
+      stroke: none,
+      align: horizon + center,
+      table.vline(x: 1), table.vline(x: 2), table.vline(x: 3), table.vline(x: 4),
+      table.hline(start: 1),
+      table.header(table.cell(align: start + horizon)[$phase], [nombre], [usuario], [contraseña]),
+      table.hline(start: 1),
+      table.cell(align: start, logo), fullname, username, password,
+      table.hline(start: 1),
     ),
   )
+}
+
+#let hrule = {
+  layout(size => {
+    if size.height - here().position().y > 120pt {
+      line(length: 100%, stroke: (dash: "densely-dashed"))
+    }
+  })
 }
 
 $entries
@@ -43,10 +46,10 @@ $entries
 def generate_pdf(phase: str, users: list[User], name: str) -> None:
     with tempfile.TemporaryDirectory() as tempdir:
         entries = ""
-        for user in users:
-            fullname = f"{user.first_name} {user.last_name}".title()
-            entries += f"#entry([{fullname}], [{user.username}], [{user.password}])\n"
-            entries += '#line(length: 100%, stroke: (dash: "dashed"))\n'
+        for u in users:
+            fullname = f"{u.first_name} {u.last_name}".title()
+            entries += f"#entry([{fullname}], [`{u.username}`], [`{u.password}`])\n"
+            entries += "#hrule\n"
 
         path = Path(tempdir) / "main.typ"
         with path.open(mode="w") as typstfile:
