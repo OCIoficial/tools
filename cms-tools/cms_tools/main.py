@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, TypedDict, cast
 from ruamel.yaml import YAML
