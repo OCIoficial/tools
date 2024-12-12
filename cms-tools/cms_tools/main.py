@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-from typing import Any, TypedDict, cast, List, Dict
-import yaml
+from pathlib import Path
+from typing import Any, TypedDict, cast
+from ruamel.yaml import YAML
 import json
 import tempfile
 import subprocess
@@ -36,7 +37,7 @@ class Host:
     def workers(self) -> int:
         return self._workers
 
-    def scp(self, source: str, target: str):
+    def scp(self, source: str, target: str) -> int:
         ip = self._ssh["ip"]
         username = self._ssh["username"]
         cmd = [
@@ -47,7 +48,7 @@ class Host:
             f"{username}@{ip}:{target}",
         ]
         self._print_cmd(cmd)
-        subprocess.check_call(cmd)
+        return subprocess.check_call(cmd)
 
     def run(self, cmd: str) -> None:
         username = self._ssh["username"]
@@ -63,7 +64,7 @@ class Host:
         self._print_cmd(cmd)
         os.execlp("ssh", *cmd)
 
-    def _print_cmd(self, cmd: List[str]) -> None:
+    def _print_cmd(self, cmd: list[str]) -> None:
         print("$", " ".join(cmd))
 
 
@@ -78,16 +79,17 @@ class Main(Host):
 
 
 class CMSTools:
-    def __init__(self, conf_path: str, contest_id: str):
+    def __init__(self, conf_path: Path, contest_id: str) -> None:
         self._contest_id = contest_id
-        conf: Any = yaml.safe_load(open(conf_path, "r"))
-        identity = cast(str, conf["identity_file"])
-        self._main = Main(conf["main"], identity)
-        self._workers = [Host(c, identity) for c in conf.get("workers", [])]
-        self._rankings = cast(List[str], conf.get("rankings", []))
-        self._secret_key = cast(str, conf["secret_key"])
+        with conf_path.open() as conf_file:
+            conf: Any = YAML(typ="safe").load(conf_file)  # type: ignore [reportUnknownMemberType]
+            identity = cast(str, conf["identity_file"])
+            self._main = Main(conf["main"], identity)
+            self._workers = [Host(c, identity) for c in conf.get("workers", [])]
+            self._rankings = cast(list[str], conf.get("rankings", []))
+            self._secret_key = cast(str, conf["secret_key"])
 
-    def hosts(self) -> List[Host]:
+    def hosts(self) -> list[Host]:
         return [self._main, *self._workers]
 
     def worker(self, idx: int) -> Host:
@@ -95,7 +97,7 @@ class CMSTools:
             raise Exception("Cannot find worker in configuration")
         return self._workers[idx]
 
-    def match_hosts(self, pattern: str) -> List[Host]:
+    def match_hosts(self, pattern: str) -> list[Host]:
         m = re.match(r"worker(\d+)", pattern)
         if pattern in ["all", "*"]:
             return self.hosts()
@@ -106,38 +108,38 @@ class CMSTools:
         else:
             raise Exception(f"Cannot match host `{pattern}`")
 
-    def exec(self, cmd: str, pattern: str):
+    def exec(self, cmd: str, pattern: str) -> None:
         for host in self.match_hosts(pattern):
             host.run(cmd)
             print()
 
-    def stop_resource_service(self, pattern: str):
+    def stop_resource_service(self, pattern: str) -> None:
         self.exec("screen -X -S resourceService quit", pattern)
 
-    def restart_resource_service(self, pattern: str):
+    def restart_resource_service(self, pattern: str) -> None:
         session = "resourceService"
         self.exec(
             f"screen -X -S {session} quit; screen -S {session} -d -m cmsResourceService -a {self._contest_id}",
             pattern,
         )
 
-    def restart_log_service(self):
+    def restart_log_service(self) -> None:
         session = "logService"
         self._main.run(
             f"screen -X -S {session} quit; screen -S {session} -d -m cmsLogService",
         )
 
-    def status(self, pattern: str):
+    def status(self, pattern: str) -> None:
         self.exec("screen -list", pattern)
 
-    def copy(self, pattern: str, cms_conf_path: str):
+    def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            json.dump(self._cms_conf(cms_conf_path), fp, indent=4)
+            json.dump(self._cms_conf(), fp, indent=4)
             fp.seek(0)
             for host in self.match_hosts(pattern):
                 host.scp(fp.name, "/usr/local/etc/cms.conf")
 
-    def connect(self, pattern: str):
+    def connect(self, pattern: str) -> None:
         hosts = self.match_hosts(pattern)
         if len(hosts) == 1:
             host = hosts[0]
@@ -147,13 +149,12 @@ class CMSTools:
         else:
             raise Exception(f"`{pattern}` matches more than one host")
 
-    def _core_services(self) -> Dict[str, Any]:
-        resource_service: List[List[Any]] = []
-        worker_service: List[List[Any]] = []
+    def _core_services(self) -> dict[str, Any]:
+        resource_service: list[list[Any]] = []
+        worker_service: list[list[Any]] = []
         for host in self.hosts():
             resource_service.append([host.ip, 28000])
-            for i in range(host.workers):
-                worker_service.append([host.ip, 26000 + i])
+            worker_service.extend([host.ip, 26000 + i] for i in range(host.workers))
 
         main_ip = self._main.ip
 
@@ -170,34 +171,38 @@ class CMSTools:
             "PrintingService": [[main_ip, 25123]],
         }
 
-    def _database(self):
+    def _database(self) -> str:
         ip = self._main.ip
         db = self._main.db
         port = db.get("port", 5432)
         return f"postgresql+psycopg2://{db['username']}:{db['password']}@{ip}:{port}/{db['name']}"
 
-    def _cms_conf(self, cms_conf_path: str):
-        cms_conf = json.load(open(cms_conf_path, "r"))
-        cms_conf["core_services"] = self._core_services()
-        cms_conf["database"] = self._database()
-        cms_conf["rankings"] = self._rankings
-        cms_conf["secret_key"] = self._secret_key
-        return cms_conf
+    def _cms_conf(self) -> dict[str, str]:
+        cms_conf_path = Path(__file__).parent / "cms.conf"
+        with cms_conf_path.open() as cms_conf_file:
+            cms_conf = json.load(cms_conf_file)
+            cms_conf["core_services"] = self._core_services()
+            cms_conf["database"] = self._database()
+            cms_conf["rankings"] = self._rankings
+            cms_conf["secret_key"] = self._secret_key
+            return cms_conf
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="""
              cms-tools is a script containing a set of useful commands to configure cms contests
              in multiple hosts. The script expects a configuration file containing the description
-             of the hosts. See the sample conf.sample.yaml for a more detailed description.
-             All commands expect a positional argument specifying in which host they should run.
+             of the hosts used for cms. You can generate one in the current directory with `cms-tools init-conf`
+             the generated file contains comments with detailing how to configure cms-tools.
+
+             Most commands expect a positional argument specifying in which host they should run.
              This argument can be either `all` (run in all hosts), `main` (run in main host)
              or `workerX` where X is the index (starting from 0) of a worker as described
              in the configuration file. This command is optional and defaulted to `all` for
-             all commands expect for connect. To see further information for a specific command
-             run the command followed by --help.
+             all commands except for `connect`. To see further information for a specific command
+             run the command followed by `--help`.
              """,
     )
     parser.add_argument(
@@ -207,9 +212,16 @@ def main():
         help="A contest id or ALL to serve all contests",
     )
     parser.add_argument(
-        "--conf", default="conf.yaml", help="Path to the host configuration file."
+        "--conf",
+        default="conf.yaml",
+        help="Path to the host configuration file.",
     )
     subparsers = parser.add_subparsers(dest="command")
+
+    subparsers.add_parser(
+        "init-conf",
+        help="Initialized the conf.yaml conf in the current directory",
+    )
 
     # copy
     copy_parser = subparsers.add_parser(
@@ -223,11 +235,11 @@ def main():
                  """,
     )
     copy_parser.add_argument("host", nargs="?", default="all")
-    copy_parser.add_argument("--cms-conf", default="cms.conf")
 
     # start log service
     subparsers.add_parser(
-        "restart-log-service", help="start the log service in the main host"
+        "restart-log-service",
+        help="start the log service in the main host",
     )
 
     # restart resource service
@@ -252,7 +264,8 @@ def main():
 
     # connect
     connect_parser = subparsers.add_parser(
-        "connect", help="Connect to remote host via ssh."
+        "connect",
+        help="Connect to remote host via ssh.",
     )
     connect_parser.add_argument("host")
 
@@ -262,7 +275,17 @@ def main():
         parser.print_help()
         return
 
-    tools = CMSTools(args.conf, args.contest_id)
+    if args.command == "init-conf":
+        sample_conf = Path(__file__).parent / "conf.sample.yaml"
+        conf = Path("conf.yaml")
+        with sample_conf.open() as sample_conf_file, conf.open("wb") as conf_file:
+            yaml = YAML()
+            data = yaml.load(sample_conf_file)  # type: ignore [reportUnknownMemberType]
+            data["secret_key"] = os.urandom(16).hex()
+            yaml.dump(data, conf_file)  # type: ignore [reportUnknownMemberType]
+        return
+
+    tools = CMSTools(Path(args.conf), args.contest_id)
     if args.command == "stop-resource-service":
         tools.stop_resource_service(args.host)
     elif args.command == "restart-resource-service":
@@ -270,7 +293,7 @@ def main():
     elif args.command == "restart-log-service":
         tools.restart_log_service()
     elif args.command == "copy-cms-conf":
-        tools.copy(args.host, args.cms_conf)
+        tools.copy(args.host)
     elif args.command == "status":
         tools.status(args.host)
     elif args.command == "connect":

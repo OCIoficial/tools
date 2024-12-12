@@ -1,13 +1,14 @@
-# Secret key used by cms for crypto stuff, It must be a 16 bytes long
-# hexadecimal number.
-# You can create a key by calling:
+# Secret key used by cms for crypto stuff. It must be a 16 bytes long
+# hexadecimal number. If you generated this file with cms-tools this
+# has already been randomly generated for you, otherwise you can
+# generate a random string by calling:
 # python3 -c 'import os; print(os.urandom(16).hex())'
 secret_key: 8e045a51e4b102ea803c06f92841a1fb
 
 # Identity file used to connect via ssh.
 # The same identity file is used to connect to all hosts. If you are
-# already connected  to the main host via ssh what you can do is to use
-# the identity file used to connect, i.e., copy it into the main host.
+# already connected to the main host via ssh what you can do is to use
+# the identity file you used to connect, i.e., copy it into the main host.
 # This assume the same identity file has access to the workers. Remember
 # to set the permissions of the identity file to 600.
 identity_file: ~/.ssh/identity.pem
@@ -19,16 +20,14 @@ main:
   ip: 172.31.56.18
 
   # Number of workers that will run in the main host. This should
-  # be zero during the contest, but you can set it to one while
+  # be zero during the contest, but you can set it to 1 if
   # testing without workers.
   workers: 0
 
-  # Settings to connect to the host via ssh. Note that the host
-  # must be able to accept ssh connections to this IP. If the security
-  # group is only configured to received ssh connections to the public
-  # IP you should use that one.
+  # Settings to connect to the host via ssh to execute cms-tools commands. Note that
+  # the main host must be able to accept ssh connections to this IP form itself.
   ssh:
-    ip: 52.90.13.4
+    ip: 172.31.56.18
     username: ubuntu
 
   # Credentials to connect to the database. The database is assumed
@@ -40,11 +39,14 @@ main:
 
 # The list of remote hosts running workers. You can leave this list
 # empty when testing without workers.
+# workers: []
 workers:
-  - ip: 192.168.0.3
+  - # Private IP of the worker. The main host should be able to reach it in the local network.
+    ip: 192.168.0.3
     workers: 1
+    # Settings to connect to the worker via ssh to execute cms-tools command.
     ssh:
-      ip: 52.90.175.208
+      ip: 192.168.0.3
       username: ubuntu
 
 rankings:
