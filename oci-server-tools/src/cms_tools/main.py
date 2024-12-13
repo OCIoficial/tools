@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 from typing import Any, TypedDict, cast
 from ruamel.yaml import YAML
 import json
@@ -202,6 +203,22 @@ class CMSTools:
             return cms_conf
 
 
+def copy_images() -> None:
+    src = Path(__file__)
+    dst = Path("/var/local/lib/cms/ranking")
+
+    # Copy logo
+    dst.mkdir(exist_ok=True, parents=True)
+    shutil.copy(src / "logo.png", dst)
+
+    # Copy flags
+    flags_src = Path(__file__) / "flags"
+    flags_dst = dst / "flags"
+    for flag in flags_src.glob("*.png"):
+        flags_dst.mkdir(exist_ok=True)
+        shutil.copy(flag, flags_dst)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -288,6 +305,12 @@ def main() -> None:
         help="do not require confirmation on dropping data",
     )
 
+    # copy logos
+    subparsers.add_parser(
+        "copy-ranking-images",
+        help="copy logo and team flags for ranking web server.",
+    )
+
     # status
     status_parser = subparsers.add_parser("status", help="list screen sessions")
     status_parser.add_argument("host", nargs="?", default="all")
@@ -316,6 +339,10 @@ def main() -> None:
             print(f"{conf} file generated in current directory")
         return
 
+    if args.command == "copy-ranking-images":
+        copy_images()
+        return
+
     tools = CMSTools(Path(args.conf), args.contest_id)
     if args.command == "stop-resource-service":
         tools.stop_resource_service(args.host)
@@ -323,7 +350,7 @@ def main() -> None:
         tools.restart_resource_service(args.host)
     elif args.command == "restart-log-service":
         tools.restart_log_service()
-    elif args.commands == "restart-ranking":
+    elif args.command == "restart-ranking":
         tools.restart_ranking(yes=args.yes, drop=args.drop)
     elif args.command == "copy-cms-conf":
         tools.copy(args.host)
