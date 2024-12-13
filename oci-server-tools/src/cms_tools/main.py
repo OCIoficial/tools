@@ -88,7 +88,7 @@ class CMSTools:
             identity = cast(str, conf["identity_file"])
             self._main = Main(conf["main"], identity)
             self._workers = [Host(c, identity) for c in conf.get("workers", [])]
-            self._rankings = cast(list[str], conf.get("rankings", []))
+            self._rankings = cast("list[str]", conf.get("rankings", []))
             self._secret_key = cast(str, conf["secret_key"])
 
     def hosts(self) -> list[Host]:
@@ -151,9 +151,9 @@ class CMSTools:
         else:
             raise Exception(f"`{pattern}` matches more than one host")
 
-    def _core_services(self) -> dict[str, Any]:
-        resource_service: list[list[Any]] = []
-        worker_service: list[list[Any]] = []
+    def _core_services(self) -> dict[str, list[list[str | int]]]:
+        resource_service: list[list[str | int]] = []
+        worker_service: list[list[str | int]] = []
         for host in self.hosts():
             resource_service.append([host.ip, 28000])
             worker_service.extend([host.ip, 26000 + i] for i in range(host.workers))
@@ -179,7 +179,7 @@ class CMSTools:
         port = db.get("port", 5432)
         return f"postgresql+psycopg2://{db['username']}:{db['password']}@{ip}:{port}/{db['name']}"
 
-    def _cms_conf(self) -> dict[str, str]:
+    def _cms_conf(self) -> dict[str, Any]:
         cms_conf_path = Path(__file__).parent / "cms.conf"
         with cms_conf_path.open() as cms_conf_file:
             cms_conf = json.load(cms_conf_file)
@@ -285,6 +285,7 @@ def main() -> None:
             data = yaml.load(sample_conf_file)  # type: ignore [reportUnknownMemberType]
             data["secret_key"] = os.urandom(16).hex()
             yaml.dump(data, conf_file)  # type: ignore [reportUnknownMemberType]
+            print(f"{conf} file generated in current directory")
         return
 
     tools = CMSTools(Path(args.conf), args.contest_id)
