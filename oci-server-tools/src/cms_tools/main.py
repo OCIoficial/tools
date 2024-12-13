@@ -274,7 +274,7 @@ def main() -> None:
 
     # ranking
     ranking_parser = subparsers.add_parser(
-        "restart-raking",
+        "restart-ranking",
         help="Connect to remote host via ssh.",
     )
     ranking_parser.add_argument(
