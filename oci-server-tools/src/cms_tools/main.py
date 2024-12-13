@@ -204,17 +204,20 @@ class CMSTools:
 
 
 def copy_images() -> None:
-    src = Path(__file__)
+    src = Path(__file__).parent
     dst = Path("/var/local/lib/cms/ranking")
 
     # Copy logo
+    logo_src = src / "logo.png"
+    print(f"$ cp {logo_src} {dst}")
     dst.mkdir(exist_ok=True, parents=True)
-    shutil.copy(src / "logo.png", dst)
+    shutil.copy(logo_src, dst)
 
     # Copy flags
-    flags_src = Path(__file__) / "flags"
+    flags_src = src / "flags"
     flags_dst = dst / "flags"
     for flag in flags_src.glob("*.png"):
+        print(f"$ cp {flag} {flags_dst}")
         flags_dst.mkdir(exist_ok=True)
         shutil.copy(flag, flags_dst)
 
@@ -340,8 +343,7 @@ def main() -> None:
         return
 
     if args.command == "copy-ranking-images":
-        copy_images()
-        return
+        return copy_images()
 
     tools = CMSTools(Path(args.conf), args.contest_id)
     if args.command == "stop-resource-service":
