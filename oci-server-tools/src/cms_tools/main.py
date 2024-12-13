@@ -110,17 +110,17 @@ class CMSTools:
         else:
             raise Exception(f"Cannot match host `{pattern}`")
 
-    def exec(self, cmd: str, pattern: str) -> None:
+    def run_in_matching_host(self, cmd: str, pattern: str) -> None:
         for host in self.match_hosts(pattern):
             host.run(cmd)
             print()
 
     def stop_resource_service(self, pattern: str) -> None:
-        self.exec("screen -X -S resourceService quit", pattern)
+        self.run_in_matching_host("screen -X -S resourceService quit", pattern)
 
     def restart_resource_service(self, pattern: str) -> None:
         session = "resourceService"
-        self.exec(
+        self.run_in_matching_host(
             f"screen -X -S {session} quit; screen -S {session} -d -m cmsResourceService -a {self._contest_id}",
             pattern,
         )
@@ -131,8 +131,20 @@ class CMSTools:
             f"screen -X -S {session} quit; screen -S {session} -d -m cmsLogService",
         )
 
+    def restart_ranking(self, *, yes: bool, drop: bool) -> None:
+        session = "ranking"
+        cmd = ["cmsRankingWebServer"]
+        if yes:
+            cmd.append("--yes")
+        if drop:
+            cmd.append("--drop")
+        cmd = " ".join(cmd)
+        self._main.run(
+            f"screen -X -S {session} quit; screen -S {session} -d -m {cmd}",
+        )
+
     def status(self, pattern: str) -> None:
-        self.exec("screen -list", pattern)
+        self.run_in_matching_host("screen -list", pattern)
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
@@ -222,14 +234,14 @@ def main() -> None:
 
     subparsers.add_parser(
         "init-conf",
-        help="Initialized the conf.yaml conf in the current directory",
+        help="initialize conf.yaml in the current directory",
     )
 
     # copy
     copy_parser = subparsers.add_parser(
         "copy-cms-conf",
         help="""
-                 Copy the cms.conf file to the host(s).
+                 copy the cms.conf file to the host(s).
                  This command expects write permissions to /usr/local/etc/cms.conf in the
                  remote host(s).
                  The cms.conf file is created from a sample one by filling the core_services and
@@ -247,7 +259,7 @@ def main() -> None:
     # restart resource service
     restart_parser = subparsers.add_parser(
         "restart-resource-service",
-        help="""Start or restart the services running on the host(s). This kills the previous screen
+        help="""start or restart the services running on the host(s). This kills the previous screen
         session and creates a new one executing cmsResourceService -a CONTEST_ID.""",
     )
     restart_parser.add_argument("host", nargs="?", default="all")
@@ -260,8 +272,24 @@ def main() -> None:
     )
     stop_parser.add_argument("host", nargs="?", default="all")
 
+    # ranking
+    ranking_parser = subparsers.add_parser(
+        "restart-raking",
+        help="Connect to remote host via ssh.",
+    )
+    ranking_parser.add_argument(
+        "--drop",
+        action="store_true",
+        help="drop the data already stored",
+    )
+    ranking_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="do not require confirmation on dropping data",
+    )
+
     # status
-    status_parser = subparsers.add_parser("status", help="List screen sessions")
+    status_parser = subparsers.add_parser("status", help="list screen sessions")
     status_parser.add_argument("host", nargs="?", default="all")
 
     # connect
@@ -295,6 +323,8 @@ def main() -> None:
         tools.restart_resource_service(args.host)
     elif args.command == "restart-log-service":
         tools.restart_log_service()
+    elif args.commands == "restart-ranking":
+        tools.restart_ranking(yes=args.yes, drop=args.drop)
     elif args.command == "copy-cms-conf":
         tools.copy(args.host)
     elif args.command == "status":

@@ -13,7 +13,7 @@ cms-tools = "cms_tools:main"
 csv-paste = "csv_paste:main"
 
 [tool.setuptools.package-data]
-credentials = ["cms.conf", "conf.sample.yaml"]
+cms-tools = ["cms.conf", "conf.sample.yaml", "flags/*.png", "logo.png"]
 
 [tool.pyright]
 pythonPlatform = "All"
