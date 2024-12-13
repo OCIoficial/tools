@@ -7,10 +7,10 @@ secret_key: 8e045a51e4b102ea803c06f92841a1fb
 
 # Identity file used to connect via ssh.
 # The same identity file is used to connect to all hosts. If you are
-# already connected to the main host via ssh what you can do is to use
-# the identity file you used to connect, i.e., copy it into the main host.
-# This assume the same identity file has access to the workers. Remember
-# to set the permissions of the identity file to 600.
+# already connected to the main host via ssh what you can use the same
+# identity file you used to connect to the main host, i.e., copy it into
+# the main host. This assume the same identity file has access to the workers.
+# Remember to set the permissions of the identity file to 600.
 identity_file: ~/.ssh/identity.pem
 
 # Configuration of the main host that runs the core services and postgres.
@@ -25,13 +25,14 @@ main:
   workers: 0
 
   # Settings to connect to the host via ssh to execute cms-tools commands. Note that
-  # the main host must be able to accept ssh connections to this IP form itself.
+  # if you are running cms-tools in the main host, it must be able to accept ssh
+  # connections to this IP from itself.
   ssh:
     ip: 172.31.56.18
     username: ubuntu
 
-  # Credentials to connect to the database. The database is assumed
-  # to be running in the main host.
+  # Credentials to connect to the database. The database must run in the private IP
+  # of the main host.
   db:
     name: cmsdb
     username: cmsuser
@@ -39,15 +40,13 @@ main:
 
 # The list of remote hosts running workers. You can leave this list
 # empty when testing without workers.
-# workers: []
-workers:
-  - # Private IP of the worker. The main host should be able to reach it in the local network.
-    ip: 192.168.0.3
-    workers: 1
-    # Settings to connect to the worker via ssh to execute cms-tools command.
-    ssh:
-      ip: 192.168.0.3
-      username: ubuntu
+workers: []
+# workers:
+#   - ip: 192.168.0.3 # Private IP. Must be reachable from the main host
+#     workers: 1      # Number of workers running in this host
+#     ssh:
+#       ip: 192.168.0.3
+#       username: ubuntu
 
 rankings:
   - "http://usern4me:passw0rd@localhost:8890/"
