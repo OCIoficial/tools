@@ -10,7 +10,7 @@ version = "0.1.0"
 
 [project.scripts]
 cms-tools = "cms_tools:main"
-csv-tools = "csv_tools:main"
+csv-paste = "csv_paste:main"
 
 [tool.setuptools.package-data]
 credentials = ["cms.conf", "conf.sample.yaml"]
