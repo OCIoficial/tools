@@ -4,7 +4,7 @@ requires = ["setuptools>=64"]
 
 [project]
 dependencies = ["ruamel.yaml", " prettytable"]
-name = "cms-tools"
+name = "oci-server-tools"
 requires-python = ">= 3.8"
 version = "0.1.0"
 
