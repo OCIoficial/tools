@@ -3,10 +3,18 @@ build-backend = "setuptools.build_meta"
 requires = ["setuptools>=64"]
 
 [project]
-dependencies = ["ruamel.yaml", " prettytable"]
+dependencies = [
+    "ruamel.yaml",
+    "prettytable",
+    "toml>=0.10.2",
+]
 name = "oci-server-tools"
-requires-python = ">= 3.8"
+# version in Ubuntu 24.04
+requires-python = ">= 3.12"
 version = "0.1.0"
+
+[project.optional-dependencies]
+dev = ["mypy==1.16.1", "pyright==1.1.402", "ruff==0.12.1"]
 
 [project.scripts]
 cms-tools = "cms_tools:main"
@@ -17,11 +25,11 @@ cms_tools = ["cms.conf", "conf.sample.yaml", "flags/*.png", "logo.png"]
 
 [tool.pyright]
 pythonPlatform = "All"
-pythonVersion = "3.8"
+pythonVersion = "3.12"
 typeCheckingMode = "strict"
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py312"
 
 [tool.ruff.lint]
 ignore = [

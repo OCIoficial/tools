@@ -6,7 +6,8 @@ from pathlib import Path
 import shutil
 from typing import Any, TypedDict, cast
 from ruamel.yaml import YAML
-import json
+import toml
+import tomllib
 import tempfile
 import subprocess
 import argparse
@@ -26,11 +27,16 @@ class SSHConf(TypedDict):
 
 
 class Host:
-    def __init__(self, conf: Any, identity: str) -> None:
+    def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
         self._identity = identity
+        self._cms_dir = cms_dir
         self._ip = cast(str, conf["ip"])
         self._workers = cast(int, conf.get("workers", 0))
         self._ssh = cast(SSHConf, conf["ssh"])
+
+    @property
+    def cms_dir(self) -> Path:
+        return self._cms_dir
 
     @property
     def ip(self) -> str:
@@ -72,8 +78,8 @@ class Host:
 
 
 class Main(Host):
-    def __init__(self, conf: Any, identity: str) -> None:
-        super().__init__(conf, identity)
+    def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
+        super().__init__(conf, identity, cms_dir)
         self._db = conf["db"]
 
     @property
@@ -85,10 +91,13 @@ class CMSTools:
     def __init__(self, conf_path: Path, contest_id: str) -> None:
         self._contest_id = contest_id
         with conf_path.open() as conf_file:
-            conf: Any = YAML(typ="safe").load(conf_file)  # type: ignore [reportUnknownMemberType]
+            conf = cast(Any, YAML(typ="safe").load(conf_file))  # type: ignore [reportUnknownMemberType]
             identity = cast(str, conf["identity_file"])
-            self._main = Main(conf["main"], identity)
-            self._workers = [Host(c, identity) for c in conf.get("workers", [])]
+            cms_dir = Path(conf["cms_dir"])
+            self._main = Main(conf["main"], identity, cms_dir)
+            self._workers = [
+                Host(c, identity, cms_dir) for c in conf.get("workers", [])
+            ]
             self._rankings = cast("list[str]", conf.get("rankings", []))
             self._secret_key = cast(str, conf["secret_key"])
 
@@ -139,9 +148,9 @@ class CMSTools:
             cmd.append("--yes")
         if drop:
             cmd.append("--drop")
-        cmd = " ".join(cmd)
+        cmd_str = " ".join(cmd)
         self._main.run(
-            f"screen -X -S {session} quit; screen -S {session} -d -m {cmd}",
+            f"screen -X -S {session} quit; screen -S {session} -d -m {cmd_str}",
         )
 
     def status(self, pattern: str) -> None:
@@ -149,10 +158,11 @@ class CMSTools:
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            json.dump(self._cms_conf(), fp, indent=4)
+            print(toml.dumps(self._cms_conf()))
+            toml.dump(self._cms_conf(), fp)
             fp.seek(0)
             for host in self.match_hosts(pattern):
-                host.scp(fp.name, "/usr/local/etc/cms.conf")
+                host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
 
     def connect(self, pattern: str) -> None:
         hosts = self.match_hosts(pattern)
@@ -164,7 +174,7 @@ class CMSTools:
         else:
             raise Exception(f"`{pattern}` matches more than one host")
 
-    def _core_services(self) -> dict[str, list[list[str | int]]]:
+    def _services(self) -> dict[str, list[list[str | int]]]:
         resource_service: list[list[str | int]] = []
         worker_service: list[list[str | int]] = []
         for host in self.hosts():
@@ -184,22 +194,24 @@ class CMSTools:
             "AdminWebServer": [[main_ip, 21100]],
             "ProxyService": [[main_ip, 28600]],
             "PrintingService": [[main_ip, 25123]],
+            "PrometheusExporter": [],
+            "TelegramBot": [],
         }
 
-    def _database(self) -> str:
+    def _database_url(self) -> str:
         ip = self._main.ip
         db = self._main.db
         port = db.get("port", 5432)
         return f"postgresql+psycopg2://{db['username']}:{db['password']}@{ip}:{port}/{db['name']}"
 
     def _cms_conf(self) -> dict[str, Any]:
-        cms_conf_path = Path(__file__).parent / "cms.conf"
-        with cms_conf_path.open() as cms_conf_file:
-            cms_conf = json.load(cms_conf_file)
-            cms_conf["core_services"] = self._core_services()
-            cms_conf["database"] = self._database()
-            cms_conf["rankings"] = self._rankings
-            cms_conf["secret_key"] = self._secret_key
+        cms_conf_path = Path(__file__).parent / "cms.sample.toml"
+        with cms_conf_path.open("rb") as cms_conf_file:
+            cms_conf = tomllib.load(cms_conf_file)
+            cms_conf["services"] = self._services()
+            cms_conf["database"]["url"] = self._database_url()
+            cms_conf["proxy_service"]["rankings"] = self._rankings
+            cms_conf["web_server"]["secret_key"] = self._secret_key
             return cms_conf
 
 
@@ -261,10 +273,10 @@ def main() -> None:
     copy_parser = subparsers.add_parser(
         "copy-cms-conf",
         help="""
-                 copy the cms.conf file to the host(s).
-                 This command expects write permissions to /usr/local/etc/cms.conf in the
+                 copy the cms.toml file to the host(s).
+                 This command expects write permissions to `<cms_dir>/etc` in the
                  remote host(s).
-                 The cms.conf file is created from a sample one by filling the core_services and
+                 The cms.toml file is created from a sample one by filling the core_services and
                  database fields with the correct information as described in the host configuration file.
                  """,
     )
