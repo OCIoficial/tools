@@ -59,6 +59,17 @@ class Host:
         self._print_cmd(cmd)
         return subprocess.check_call(cmd)
 
+    def restart_resource_service(self, contest_id: str) -> None:
+        session = "resourceService"
+        service = self.bin_path("cmsResourceService")
+        self.run(
+            f"screen -X -S {session} quit; screen -S {session} -d -m {service} -a {contest_id}",
+        )
+
+    def stop_resource_service(self) -> None:
+        session = "resourceService"
+        self.run(f"screen -X -S {session} quit")
+
     def run(self, cmd: str) -> None:
         username = self._ssh["username"]
         ip = self._ssh["ip"]
@@ -76,6 +87,9 @@ class Host:
     def _print_cmd(self, cmd: list[str]) -> None:
         print("$", " ".join(cmd))
 
+    def bin_path(self, service: str) -> Path:
+        return self._cms_dir / "bin" / service
+
 
 class Main(Host):
     def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
@@ -83,6 +97,25 @@ class Main(Host):
         self._db = conf["db"]
         self._admin_web_server: dict[str, Any] = conf["admin_web_server"]
         self._contest_web_server: dict[str, Any] = conf["contest_web_server"]
+
+    def restart_log_service(self) -> None:
+        session = "logService"
+        service = self.bin_path("cmsLogService")
+        self.run(
+            f"screen -X -S {session} quit; screen -S {session} -d -m {service}",
+        )
+
+    def restart_ranking(self, *, yes: bool, drop: bool) -> None:
+        session = "ranking"
+        cmd = [str(self.bin_path("cmsRankingWebServer"))]
+        if yes:
+            cmd.append("--yes")
+        if drop:
+            cmd.append("--drop")
+        cmd_str = " ".join(cmd)
+        self.run(
+            f"screen -X -S {session} quit; screen -S {session} -d -m {cmd_str}",
+        )
 
     @property
     def admin_web_server_listen_address(self) -> str:
@@ -130,41 +163,26 @@ class CMSTools:
         else:
             raise Exception(f"Cannot match host `{pattern}`")
 
-    def run_in_matching_host(self, cmd: str, pattern: str) -> None:
+    def stop_resource_service(self, pattern: str) -> None:
         for host in self.match_hosts(pattern):
-            host.run(cmd)
+            host.stop_resource_service()
             print()
 
-    def stop_resource_service(self, pattern: str) -> None:
-        self.run_in_matching_host("screen -X -S resourceService quit", pattern)
-
     def restart_resource_service(self, pattern: str) -> None:
-        session = "resourceService"
-        self.run_in_matching_host(
-            f"screen -X -S {session} quit; screen -S {session} -d -m cmsResourceService -a {self._contest_id}",
-            pattern,
-        )
+        for host in self.match_hosts(pattern):
+            host.restart_resource_service(self._contest_id)
+            print()
 
     def restart_log_service(self) -> None:
-        session = "logService"
-        self._main.run(
-            f"screen -X -S {session} quit; screen -S {session} -d -m cmsLogService",
-        )
+        self._main.restart_log_service()
 
     def restart_ranking(self, *, yes: bool, drop: bool) -> None:
-        session = "ranking"
-        cmd = ["cmsRankingWebServer"]
-        if yes:
-            cmd.append("--yes")
-        if drop:
-            cmd.append("--drop")
-        cmd_str = " ".join(cmd)
-        self._main.run(
-            f"screen -X -S {session} quit; screen -S {session} -d -m {cmd_str}",
-        )
+        self._main.restart_ranking(yes=yes, drop=drop)
 
     def status(self, pattern: str) -> None:
-        self.run_in_matching_host("screen -list", pattern)
+        for host in self.match_hosts(pattern):
+            host.run("screen -list")
+            print()
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
