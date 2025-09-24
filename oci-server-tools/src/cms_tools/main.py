@@ -81,6 +81,16 @@ class Main(Host):
     def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
         super().__init__(conf, identity, cms_dir)
         self._db = conf["db"]
+        self._admin_web_server: dict[str, Any] = conf["admin_web_server"]
+        self._contest_web_server: dict[str, Any] = conf["constest_web_server"]
+
+    @property
+    def admin_web_server_listen_address(self) -> str:
+        return self._admin_web_server["listen_address"]
+
+    @property
+    def contest_web_server_listen_addresses(self) -> list[str]:
+        return self._contest_web_server["listen_addresses"]
 
     @property
     def db(self) -> DBConf:
@@ -211,6 +221,12 @@ class CMSTools:
             cms_conf["database"]["url"] = self._database_url()
             cms_conf["proxy_service"]["rankings"] = self._rankings
             cms_conf["web_server"]["secret_key"] = self._secret_key
+            cms_conf["admin_web_server"]["listen_address"] = (
+                self._main.admin_web_server_listen_address
+            )
+            cms_conf["contest_web_server"]["listen_addresses"] = (
+                self._main.contest_web_server_listen_addresses
+            )
             return cms_conf
 
 
