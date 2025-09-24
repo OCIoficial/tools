@@ -224,7 +224,7 @@ class CMSTools:
             cms_conf["admin_web_server"]["listen_address"] = (
                 self._main.admin_web_server_listen_address
             )
-            cms_conf["contest_web_server"]["listen_addresses"] = (
+            cms_conf["contest_web_server"]["listen_address"] = (
                 self._main.contest_web_server_listen_addresses
             )
             return cms_conf
