@@ -158,7 +158,6 @@ class CMSTools:
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            print(toml.dumps(self._cms_conf()))
             toml.dump(self._cms_conf(), fp)
             fp.seek(0)
             for host in self.match_hosts(pattern):
