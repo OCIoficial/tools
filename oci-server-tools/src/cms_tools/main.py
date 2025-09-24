@@ -82,7 +82,7 @@ class Main(Host):
         super().__init__(conf, identity, cms_dir)
         self._db = conf["db"]
         self._admin_web_server: dict[str, Any] = conf["admin_web_server"]
-        self._contest_web_server: dict[str, Any] = conf["constest_web_server"]
+        self._contest_web_server: dict[str, Any] = conf["contest_web_server"]
 
     @property
     def admin_web_server_listen_address(self) -> str:
