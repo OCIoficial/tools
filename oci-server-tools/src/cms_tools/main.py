@@ -6,8 +6,7 @@ from pathlib import Path
 import shutil
 from typing import Any, TypedDict, cast
 from ruamel.yaml import YAML
-import toml
-import tomllib
+import tomlkit
 import tempfile
 import subprocess
 import argparse
@@ -186,7 +185,7 @@ class CMSTools:
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            toml.dump(self._cms_conf(), fp)
+            tomlkit.dump(self._cms_conf(), fp)  # type: ignore
             fp.seek(0)
             for host in self.match_hosts(pattern):
                 host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
@@ -234,15 +233,15 @@ class CMSTools:
     def _cms_conf(self) -> dict[str, Any]:
         cms_conf_path = Path(__file__).parent / "cms.sample.toml"
         with cms_conf_path.open("rb") as cms_conf_file:
-            cms_conf = tomllib.load(cms_conf_file)
+            cms_conf = tomlkit.load(cms_conf_file)
             cms_conf["services"] = self._services()
-            cms_conf["database"]["url"] = self._database_url()
-            cms_conf["proxy_service"]["rankings"] = self._rankings
-            cms_conf["web_server"]["secret_key"] = self._secret_key
-            cms_conf["admin_web_server"]["listen_address"] = (
+            cms_conf.value["database"]["url"] = self._database_url()
+            cms_conf.value["proxy_service"]["rankings"] = self._rankings
+            cms_conf.value["web_server"]["secret_key"] = self._secret_key
+            cms_conf.value["admin_web_server"]["listen_address"] = (
                 self._main.admin_web_server_listen_address
             )
-            cms_conf["contest_web_server"]["listen_address"] = (
+            cms_conf.value["contest_web_server"]["listen_address"] = (
                 self._main.contest_web_server_listen_addresses
             )
             return cms_conf
@@ -399,7 +398,7 @@ def main() -> None:
         tools.restart_log_service()
     elif args.command == "restart-ranking":
         tools.restart_ranking(yes=args.yes, drop=args.drop)
-    elif args.command == "copy-cms-conf":
+    elif args.command == "copy-conf":
         tools.copy(args.host)
     elif args.command == "status":
         tools.status(args.host)
