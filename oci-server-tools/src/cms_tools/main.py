@@ -122,7 +122,7 @@ class Main(Host):
         remote_flags_dir = remote_ranking_dir / "flags"
 
         # Ensure remote ranking and flags directories exist
-        self.run(f"mkdir -p '{remote_flags_dir}'")
+        self.run(f'mkdir -p "{remote_flags_dir}"')
 
         # Copy logo
         self.scp(str(src / "logo.png"), str(remote_ranking_dir / "logo.png"))
