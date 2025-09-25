@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 from typing import Any, TypedDict, cast
 from ruamel.yaml import YAML
 import tomlkit
@@ -115,6 +114,22 @@ class Main(Host):
         self.run(
             f"screen -X -S {session} quit; screen -S {session} -d -m {cmd_str}",
         )
+
+    def copy_images(self) -> None:
+        src = Path(__file__).parent
+
+        remote_ranking_dir = self.cms_dir / "lib" / "ranking"
+        remote_flags_dir = remote_ranking_dir / "flags"
+
+        # Ensure remote ranking and flags directories exist
+        self.run(f"mkdir -p '{remote_flags_dir}'")
+
+        # Copy logo
+        self.scp(str(src / "logo.png"), str(remote_ranking_dir / "logo.png"))
+
+        # Copy flags
+        for flag in (src / "flags").glob("*.png"):
+            self.scp(str(flag), str(remote_flags_dir / flag.name))
 
     @property
     def admin_web_server_listen_address(self) -> str:
@@ -246,24 +261,8 @@ class CMSTools:
             )
             return cms_conf
 
-
-def copy_images() -> None:
-    src = Path(__file__).parent
-    dst = Path("/var/local/lib/cms/ranking")
-
-    # Copy logo
-    logo_src = src / "logo.png"
-    print(f"$ cp {logo_src} {dst}")
-    dst.mkdir(exist_ok=True, parents=True)
-    shutil.copy(logo_src, dst)
-
-    # Copy flags
-    flags_src = src / "flags"
-    flags_dst = dst / "flags"
-    for flag in flags_src.glob("*.png"):
-        print(f"$ cp {flag} {flags_dst}")
-        flags_dst.mkdir(exist_ok=True)
-        shutil.copy(flag, flags_dst)
+    def copy_images(self) -> None:
+        self._main.copy_images()
 
 
 def main() -> None:
@@ -386,9 +385,6 @@ def main() -> None:
             print(f"{conf} file generated in current directory")
         return
 
-    if args.command == "copy-ranking-images":
-        return copy_images()
-
     tools = CMSTools(Path(args.conf), args.contest_id)
     if args.command == "stop-resource-service":
         tools.stop_resource_service(args.host)
@@ -404,6 +400,8 @@ def main() -> None:
         tools.status(args.host)
     elif args.command == "connect":
         tools.connect(args.host)
+    elif args.command == "copy-ranking-images":
+        tools.copy_images()
 
 
 if __name__ == "__main__":
