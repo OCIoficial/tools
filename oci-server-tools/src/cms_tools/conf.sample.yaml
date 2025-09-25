@@ -29,14 +29,16 @@ main:
   workers: 0
 
   admin_web_server:
-    # Address where the admin web server will listen. If empty, it will
-    # listen in all interfaces.
-    listen_address: ""
+    # Address where the admin web server will listen. You must set
+    # the private IP of the main host here if you want it to be reachable
+    # from outside in the default port 8889
+    listen_address: "127.0.0.1"
 
   contest_web_server:
-    # Addresses where the contest web server will listen. If empty, it will
-    # listen in all interfaces.
-    listen_addresses: []
+    # Addresses where the contest web server will listen. You must add
+    # the private IP of the main host here if you want it to be reachable
+    # from outside in the default port 8888
+    listen_address: ["127.0.0.1"]
 
   # Settings to connect to the host via ssh to execute cms-tools commands. Note that
   # if you are running cms-tools in the main host, it must be able to accept ssh

@@ -304,7 +304,7 @@ def main() -> None:
 
     # copy
     copy_parser = subparsers.add_parser(
-        "copy-cms-conf",
+        "copy-conf",
         help="""
                  copy the cms.toml file to the host(s).
                  This command expects write permissions to `<cms_dir>/etc` in the
