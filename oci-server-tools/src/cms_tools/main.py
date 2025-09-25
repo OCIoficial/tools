@@ -185,11 +185,10 @@ class CMSTools:
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            print(tomlkit.dumps(self._cms_conf()))
-            # tomlkit.dump(self._cms_conf(), fp)  # type: ignore
-            # fp.seek(0)
-            # for host in self.match_hosts(pattern):
-            #     host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
+            tomlkit.dump(self._cms_conf(), fp)  # type: ignore
+            fp.seek(0)
+            for host in self.match_hosts(pattern):
+                host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
 
     def connect(self, pattern: str) -> None:
         hosts = self.match_hosts(pattern)
