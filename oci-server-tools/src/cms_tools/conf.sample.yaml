@@ -26,7 +26,7 @@ main:
   # Number of workers that will run in the main host. This should
   # be zero during the contest, but you can set it to 1 if
   # testing without workers.
-  workers: 1
+  workers: 0
 
   admin_web_server:
     # Address where the admin web server will listen. You must set

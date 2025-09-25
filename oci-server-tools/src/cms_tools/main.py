@@ -121,8 +121,8 @@ class Main(Host):
         return self._admin_web_server["listen_address"]
 
     @property
-    def contest_web_server_listen_addresses(self) -> list[str]:
-        return self._contest_web_server["listen_addresses"]
+    def contest_web_server_listen_address(self) -> list[str]:
+        return self._contest_web_server["listen_address"]
 
     @property
     def db(self) -> DBConf:
@@ -185,10 +185,11 @@ class CMSTools:
 
     def copy(self, pattern: str) -> None:
         with tempfile.NamedTemporaryFile(mode="w+") as fp:
-            tomlkit.dump(self._cms_conf(), fp)  # type: ignore
-            fp.seek(0)
-            for host in self.match_hosts(pattern):
-                host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
+            print(tomlkit.dumps(self._cms_conf()))
+            # tomlkit.dump(self._cms_conf(), fp)  # type: ignore
+            # fp.seek(0)
+            # for host in self.match_hosts(pattern):
+            #     host.scp(fp.name, str(host.cms_dir / "etc" / "cms.toml"))
 
     def connect(self, pattern: str) -> None:
         hosts = self.match_hosts(pattern)
@@ -235,14 +236,14 @@ class CMSTools:
         with cms_conf_path.open("rb") as cms_conf_file:
             cms_conf = tomlkit.load(cms_conf_file)
             cms_conf["services"] = self._services()
-            cms_conf.value["database"]["url"] = self._database_url()
-            cms_conf.value["proxy_service"]["rankings"] = self._rankings
-            cms_conf.value["web_server"]["secret_key"] = self._secret_key
-            cms_conf.value["admin_web_server"]["listen_address"] = (
+            cms_conf["database"].value["url"] = self._database_url()
+            cms_conf["proxy_service"].value["rankings"] = self._rankings
+            cms_conf["web_server"].value["secret_key"] = self._secret_key
+            cms_conf["admin_web_server"].value["listen_address"] = (
                 self._main.admin_web_server_listen_address
             )
-            cms_conf.value["contest_web_server"]["listen_address"] = (
-                self._main.contest_web_server_listen_addresses
+            cms_conf["contest_web_server"].value["listen_address"] = (
+                self._main.contest_web_server_listen_address
             )
             return cms_conf
 
