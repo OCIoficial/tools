@@ -7,7 +7,7 @@ secret_key: 8e045a51e4b102ea803c06f92841a1fb
 
 # Directory where cms is installed. We assume it is installed in the
 # same path in the main host and workers.
-cms_dir: ~/cms
+cms_dir: /home/ubuntu/cms
 
 # Identity file used to connect via ssh.
 # The same identity file is used to connect to all hosts. If you are
@@ -15,7 +15,7 @@ cms_dir: ~/cms
 # identity file you used to connect to the main host, i.e., copy it into
 # the main host. This assume the same identity file has access to the workers.
 # Remember to set the permissions of the identity file to 600.
-identity_file: ~/.ssh/identity.pem
+identity_file: /home/ubuntu/.ssh/identity.pem
 
 # Configuration of the main host that runs the core services and postgres.
 main:
