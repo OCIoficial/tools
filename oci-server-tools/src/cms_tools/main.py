@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypedDict, cast
+import sys
+from typing import Any
+from pydantic import BaseModel
 from ruamel.yaml import YAML
 import tomlkit
 import tempfile
@@ -13,24 +15,54 @@ import re
 import os
 
 
-class DBConf(TypedDict):
+class Config(BaseModel):
+    secret_key: str
+    identity_file: str
+    cms_dir: str
+    main: MainHostConfig
+    workers: list[HostConfig]
+    rankings: list[str]
+
+
+class HostConfig(BaseModel):
+    ip: str
+    workers: int
+    ssh: SSHConf
+
+
+class MainHostConfig(HostConfig):
+    db: DBConf
+    admin_web_server: AdminWebServer
+    contest_web_server: ContestWebServer
+
+
+class AdminWebServer(BaseModel):
+    listen_address: str
+
+
+class ContestWebServer(BaseModel):
+    listen_address: list[str]
+
+
+class DBConf(BaseModel):
     name: str
     username: str
     password: str
+    port: int
 
 
-class SSHConf(TypedDict):
+class SSHConf(BaseModel):
     ip: str
     username: str
 
 
 class Host:
-    def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
+    def __init__(self, conf: HostConfig, identity: str, cms_dir: Path) -> None:
         self._identity = identity
         self._cms_dir = cms_dir
-        self._ip = cast(str, conf["ip"])
-        self._workers = cast(int, conf.get("workers", 0))
-        self._ssh = cast(SSHConf, conf["ssh"])
+        self._ip = conf.ip
+        self._workers = conf.workers
+        self._ssh = conf.ssh
 
     @property
     def cms_dir(self) -> Path:
@@ -45,8 +77,8 @@ class Host:
         return self._workers
 
     def scp(self, source: str, target: str) -> int:
-        ip = self._ssh["ip"]
-        username = self._ssh["username"]
+        ip = self._ssh.ip
+        username = self._ssh.username
         cmd = [
             "scp",
             "-i",
@@ -69,15 +101,15 @@ class Host:
         self.run(f"screen -X -S {session} quit")
 
     def run(self, cmd: str) -> None:
-        username = self._ssh["username"]
-        ip = self._ssh["ip"]
+        username = self._ssh.username
+        ip = self._ssh.ip
         cmds = ["ssh", "-i", self._identity, f"{username}@{ip}", cmd]
         self._print_cmd(cmds)
         subprocess.call(cmds)
 
     def connect(self) -> None:
-        username = self._ssh["username"]
-        ip = self._ssh["ip"]
+        username = self._ssh.username
+        ip = self._ssh.ip
         cmd = ["ssh", f"{username}@{ip}", "-i", self._identity]
         self._print_cmd(cmd)
         os.execlp("ssh", *cmd)
@@ -90,11 +122,11 @@ class Host:
 
 
 class Main(Host):
-    def __init__(self, conf: Any, identity: str, cms_dir: Path) -> None:
+    def __init__(self, conf: MainHostConfig, identity: str, cms_dir: Path) -> None:
         super().__init__(conf, identity, cms_dir)
-        self._db = conf["db"]
-        self._admin_web_server: dict[str, Any] = conf["admin_web_server"]
-        self._contest_web_server: dict[str, Any] = conf["contest_web_server"]
+        self._db = conf.db
+        self._admin_web_server = conf.admin_web_server
+        self._contest_web_server = conf.contest_web_server
 
     def restart_log_service(self) -> None:
         session = "logService"
@@ -133,11 +165,11 @@ class Main(Host):
 
     @property
     def admin_web_server_listen_address(self) -> str:
-        return self._admin_web_server["listen_address"]
+        return self._admin_web_server.listen_address
 
     @property
     def contest_web_server_listen_address(self) -> list[str]:
-        return self._contest_web_server["listen_address"]
+        return self._contest_web_server.listen_address
 
     @property
     def db(self) -> DBConf:
@@ -145,18 +177,13 @@ class Main(Host):
 
 
 class CMSTools:
-    def __init__(self, conf_path: Path, contest_id: str) -> None:
+    def __init__(self, conf: Config, contest_id: str) -> None:
         self._contest_id = contest_id
-        with conf_path.open() as conf_file:
-            conf = cast(Any, YAML(typ="safe").load(conf_file))  # type: ignore [reportUnknownMemberType]
-            identity = cast(str, conf["identity_file"])
-            cms_dir = Path(conf["cms_dir"])
-            self._main = Main(conf["main"], identity, cms_dir)
-            self._workers = [
-                Host(c, identity, cms_dir) for c in conf.get("workers", [])
-            ]
-            self._rankings = cast("list[str]", conf.get("rankings", []))
-            self._secret_key = cast(str, conf["secret_key"])
+        cms_dir = Path(conf.cms_dir)
+        self._main = Main(conf.main, conf.identity_file, cms_dir)
+        self._workers = [Host(c, conf.identity_file, cms_dir) for c in conf.workers]
+        self._rankings = conf.rankings
+        self._secret_key = conf.secret_key
 
     def hosts(self) -> list[Host]:
         return [self._main, *self._workers]
@@ -242,8 +269,7 @@ class CMSTools:
     def _database_url(self) -> str:
         ip = self._main.ip
         db = self._main.db
-        port = db.get("port", 5432)
-        return f"postgresql+psycopg2://{db['username']}:{db['password']}@{ip}:{port}/{db['name']}"
+        return f"postgresql+psycopg2://{db.username}:{db.password}@{ip}:{db.port}/{db.name}"
 
     def _cms_conf(self) -> dict[str, Any]:
         cms_conf_path = Path(__file__).parent / "cms.sample.toml"
@@ -385,7 +411,16 @@ def main() -> None:
             print(f"{conf} file generated in current directory")
         return
 
-    tools = CMSTools(Path(args.conf), args.contest_id)
+    try:
+        conf = Config.model_validate(
+            YAML(typ="safe").load(Path(args.conf)),  # pyright: ignore[reportUnknownMemberType]
+            strict=True,
+        )
+    except Exception as exc:
+        print(exc)
+        sys.exit(1)
+
+    tools = CMSTools(conf, args.contest_id)
     if args.command == "stop-resource-service":
         tools.stop_resource_service(args.host)
     elif args.command == "restart-resource-service":

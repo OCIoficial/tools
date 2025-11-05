@@ -53,6 +53,7 @@ main:
     name: cmsdb
     username: cmsuser
     password: "<dbpass>"
+    port: 5432
 
 # The list of remote hosts running workers. You can leave this list
 # empty when testing without workers.
