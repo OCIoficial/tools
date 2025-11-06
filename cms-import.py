@@ -25,6 +25,8 @@ try:
             team = Team(code=code, name=name)
             session.add(team)
 
+        logger.info("teams imported successfully.")
+
     def import_users(session, users):
         for row in users:
             (username, password, email, first_name, last_name, *rest) = row
@@ -40,6 +42,8 @@ try:
                 email=email,
             )
             session.add(user)
+
+        logger.info("users imported successfully.")
 
     def get_team_or_none(session, cells):
         team_code = None
@@ -71,6 +75,8 @@ try:
                 team=team,
             )
             session.add(participation)
+
+        logger.info("participations imported successfully.")
 
     def run_with_session(action):
         try:
@@ -147,8 +153,6 @@ def main():
         run_with_session(
             lambda session: import_participations(session, users, args.contest)
         )
-
-    logger.info("csv imported successfully.")
 
 
 if __name__ == "__main__":
