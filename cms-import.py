@@ -10,7 +10,6 @@ import csv
 logger = logging.getLogger(__name__)
 
 try:
-    from uu import Error
     import gevent.monkey
     from sqlalchemy.exc import IntegrityError
     from cms import utf8_decoder
