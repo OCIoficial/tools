@@ -36,7 +36,7 @@
   line-height: 1;
 }
 
-/* Botón según las reglas de marca de Google (variantes clara y oscura). */
+/* Button following Google's branding guidelines (light and dark variants). */
 .google {
   height: 36px;
   padding: 0 12px;
@@ -53,7 +53,7 @@
   background: #f2f2f2;
 }
 
-/* Atributo de tema de Mantine en vez de light-dark(), que el build no traduce bien. */
+/* Mantine's theme attribute instead of light-dark(), which the build does not translate well. */
 :global([data-mantine-color-scheme='dark']) .google {
   border-color: #8e918f;
   background: #131314;

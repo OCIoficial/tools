@@ -30,7 +30,7 @@ const update = (id: string, patch: Partial<SharedAttachment>, typing = false) =>
 
 const remove = (id: string) => updateShared((shared) => shared.filter((item) => item.id !== id))
 
-/** Lee archivos del computador; rechaza los vacíos y los que solos superan el límite de Gmail. */
+/** Reads files from the computer; rejects empty ones and those that alone exceed Gmail's limit. */
 async function readUploads(files: File[]): Promise<{ added: SharedAttachment[]; errors: string[] }> {
   const added: SharedAttachment[] = []
   const errors: string[] = []
@@ -113,7 +113,7 @@ function SharedRow({ item, handle }: { item: SharedAttachment; handle: ReactNode
   )
 }
 
-/** Archivos que van en todos los correos, antes de los de cada fila. */
+/** Files that go in every email, before each row's own. */
 export function SharedAttachments() {
   const shared = useStore((state) => state.shared)
   const google = useGoogle()
@@ -220,7 +220,7 @@ export function SharedAttachments() {
           </Button>
         </SimpleGrid>
       </div>
-      {/* Solo en desarrollo; aparte, para no mezclarlo con las fuentes reales. */}
+      {/* Development only; separate, so it does not mix with the real sources. */}
       {import.meta.env.DEV && (
         <Button variant="light" fullWidth color="grape" leftSection={<IconFlask size={16} />} disabled={busy} onClick={fromSample}>
           Use sample file

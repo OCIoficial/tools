@@ -1,25 +1,25 @@
 import { AuthError } from './api.ts'
 
-/** Límite de la Gmail API para un mensaje enviado por el endpoint de subida. */
+/** Gmail API limit for a message sent through the upload endpoint. */
 export const MAX_MESSAGE_SIZE = 35 * 1024 * 1024
 
-/** Un error que impide seguir enviando (límite diario de Gmail). */
+/** An error that prevents further sending (Gmail's daily limit). */
 export class SendLimitError extends Error {}
 
 /**
- * No llegó respuesta (se cortó la conexión): Gmail pudo haber enviado el mensaje. No se
- * reintenta solo, para no mandar un correo dos veces.
+ * No response arrived (the connection dropped): Gmail may have sent the message. It is not
+ * retried automatically, so as not to send an email twice.
  */
 export class UnconfirmedSendError extends Error {}
 
-/** Endpoint con el mensaje en JSON. El de subida (/upload/...) no incluye la cabecera CORS en su
- * respuesta: el navegador la bloquea aunque Gmail haya enviado el correo. */
+/** Endpoint with the message in JSON. The upload one (/upload/...) does not include the CORS header
+ * in its response: the browser blocks it even though Gmail sent the email. */
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send'
 
-/** Base64url sin relleno, como pide el campo raw de la Gmail API. */
+/** Base64url without padding, as the raw field of the Gmail API requires. */
 function base64Url(bytes: Uint8Array): string {
   let binary = ''
-  // En bloques, para no exceder el máximo de argumentos de String.fromCharCode.
+  // In chunks, so as not to exceed the maximum number of arguments of String.fromCharCode.
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   }
@@ -33,8 +33,8 @@ interface GmailError {
 }
 
 /**
- * Envía un mensaje ya armado (RFC 5322). Reintenta hasta 3 veces ante límites de frecuencia
- * y errores del servidor, esperando 1, 2 y 4 segundos.
+ * Sends an already built message (RFC 5322). Retries up to 3 times on rate limits
+ * and server errors, waiting 1, 2 and 4 seconds.
  */
 export async function sendRawMessage(token: string, message: Uint8Array): Promise<string> {
   if (message.length > MAX_MESSAGE_SIZE) {
@@ -43,7 +43,7 @@ export async function sendRawMessage(token: string, message: Uint8Array): Promis
 
   const payload = JSON.stringify({ raw: base64Url(message) })
   for (let attempt = 0; ; attempt++) {
-    // Sin conexión antes de enviar: seguro que no salió.
+    // No connection before sending: it certainly did not go out.
     if (navigator.onLine === false) throw new Error("You're offline. The email wasn't sent.")
     let response: Response
     try {
@@ -57,7 +57,7 @@ export async function sendRawMessage(token: string, message: Uint8Array): Promis
         'The connection was lost while sending, so Gmail never confirmed it. It may have been sent: check your Sent folder in Gmail.',
       )
     }
-    // Enviado: aunque la respuesta no se pueda leer, Gmail ya lo aceptó.
+    // Sent: even if the response cannot be read, Gmail already accepted it.
     if (response.ok) return ((await response.json().catch(() => ({}))) as { id?: string }).id ?? ''
     if (response.status === 401) throw new AuthError('Your Google session expired. Sign in again.')
 

@@ -1,7 +1,7 @@
 /**
- * Texto con celdas separadas por un carácter (tab al pegar, coma o punto y coma en un CSV).
- * Una celda con el separador, un salto de línea o comillas va entre comillas, y sus comillas
- * se duplican, como lo escriben Google Sheets, Excel y LibreOffice.
+ * Text with cells separated by a character (tab when pasting, comma or semicolon in a CSV).
+ * A cell with the separator, a line break or quotes goes in quotes, and its quotes are
+ * doubled, as Google Sheets, Excel and LibreOffice write it.
  */
 export function parseDelimited(text: string, delimiter: string): string[][] {
   const rows: string[][] = []
@@ -10,7 +10,7 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
   let i = 0
   while (i < text.length) {
     if (cell === '' && text[i] === '"') {
-      // Celda entre comillas: termina en la comilla que no está duplicada.
+      // Quoted cell: it ends at the quote that is not doubled.
       i++
       while (i < text.length && !(text[i] === '"' && text[i + 1] !== '"')) {
         cell += text[i]
@@ -37,7 +37,7 @@ export function parseDelimited(text: string, delimiter: string): string[][] {
   return rows
 }
 
-/** Quita las celdas vacías al final de cada fila, como la Sheets API, para no crear columnas vacías. */
+/** Removes the empty cells at the end of each row, like the Sheets API, so no empty columns are created. */
 export function trimRows(rows: string[][]): string[][] {
   return rows.map((cells) => {
     let end = cells.length
@@ -51,11 +51,11 @@ export const hasCells = (rows: string[][]) => rows.some((cells) => cells.length 
 const DELIMITERS = [',', ';', '\t', '|']
 
 /**
- * Separador de un CSV: el que divide las primeras filas en la misma cantidad de columnas (más
- * de una). Excel en español guarda con punto y coma, porque la coma es el separador decimal.
+ * Separator of a CSV: the one that splits the first rows into the same number of columns (more
+ * than one). Excel in Spanish saves with semicolons, because the comma is the decimal separator.
  */
 export function detectDelimiter(text: string): string {
-  // Unas 50 filas bastan y evitan recorrer un archivo grande cuatro veces.
+  // About 50 rows are enough and avoid going through a large file four times.
   const sample = text.split(/\r?\n/, 50).join('\n')
   let best = { delimiter: ',', score: 0 }
   for (const delimiter of DELIMITERS) {
@@ -63,12 +63,12 @@ export function detectDelimiter(text: string): string {
       .filter((cells) => cells.some((cell) => cell.trim() !== ''))
       .map((cells) => cells.length)
     if (counts.length === 0) continue
-    // La cantidad de columnas más común, y en cuántas filas se repite.
+    // The most common number of columns, and in how many rows it repeats.
     const frequency = new Map<number, number>()
     for (const count of counts) frequency.set(count, (frequency.get(count) ?? 0) + 1)
     const [columns, rows] = [...frequency].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0]
     if (columns < 2) continue
-    // Primero la consistencia entre filas; a igual consistencia, más columnas.
+    // Consistency between rows first; with equal consistency, more columns.
     const score = rows / counts.length + columns / 1000
     if (score > best.score) best = { delimiter, score }
   }
@@ -76,19 +76,19 @@ export function detectDelimiter(text: string): string {
 }
 
 /**
- * Texto de un archivo: UTF-8 si es válido; si no, Windows-1252 (Latin-1), la codificación con
- * que Excel en Windows guarda los CSV, para que tildes y ñ no salgan rotas.
+ * Text of a file: UTF-8 if it is valid; otherwise Windows-1252 (Latin-1), the encoding
+ * Excel on Windows saves CSVs with, so accents and ñ do not come out garbled.
  */
 export function decodeText(data: Uint8Array): string {
   try {
-    // ignoreBOM: false (por defecto) quita la marca BOM de UTF-8 que agrega Excel.
+    // ignoreBOM: false (the default) removes the UTF-8 BOM that Excel adds.
     return new TextDecoder('utf-8', { fatal: true }).decode(data)
   } catch {
     return new TextDecoder('windows-1252').decode(data)
   }
 }
 
-/** Lee un CSV: detecta codificación y separador, y respeta la línea "sep=;" que agrega Excel. */
+/** Reads a CSV: detects encoding and separator, and honors the "sep=;" line that Excel adds. */
 export function parseCsv(data: Uint8Array): string[][] {
   let text = decodeText(data)
   const declared = /^sep=(.)\r?\n/.exec(text)

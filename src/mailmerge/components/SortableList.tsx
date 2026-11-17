@@ -36,7 +36,7 @@ interface ItemProps {
   children: (handle: ReactNode) => ReactNode
 }
 
-/** Se arrastra solo desde la manija: el resto del elemento tiene campos y botones. */
+/** Dragged only by the handle: the rest of the item has fields and buttons. */
 function SortableItem({ id, label, animate, children }: ItemProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id,
@@ -67,18 +67,18 @@ function SortableItem({ id, label, animate, children }: ItemProps) {
 interface Props<T> {
   items: T[]
   getId: (item: T) => string
-  /** Nombre accesible de cada elemento, para la manija. */
+  /** Accessible name of each item, for the handle. */
   getLabel: (item: T) => string
   onReorder: (items: T[]) => void
-  /** Dibuja un elemento; `handle` es la manija para arrastrarlo. */
+  /** Renders an item; `handle` is the handle to drag it. */
   children: (item: T, handle: ReactNode) => ReactNode
   gap?: number
 }
 
-/** Lista vertical que se reordena arrastrando la manija de cada elemento (o con teclado). */
+/** Vertical list reordered by dragging each item's handle (or with the keyboard). */
 export function SortableList<T>({ items, getId, getLabel, onReorder, children, gap = 8 }: Props<T>) {
   const animate = !useReducedMotion()
-  // Reordenar cambia los adjuntos de los correos: no mientras se envía.
+  // Reordering changes the emails' attachments: not while sending.
   const sending = useSending()
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),

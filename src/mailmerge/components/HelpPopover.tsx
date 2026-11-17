@@ -4,15 +4,15 @@ import type { ReactNode } from 'react'
 import classes from './HelpPopover.module.css'
 
 interface Props {
-  /** Texto del botón; si `iconOnly`, queda como nombre accesible. */
+  /** Button text; with `iconOnly`, it becomes the accessible name. */
   label: string
   iconOnly?: boolean
   children: ReactNode
 }
 
 /**
- * Ayuda de referencia a pedido: se abre con clic o toque (no hover, que no existe en
- * el teléfono), se cierra con Esc o tocando fuera.
+ * Reference help on demand: opens on click or tap (not hover, which does not exist on a
+ * phone), closes with Esc or by tapping outside.
  */
 export function HelpPopover({ label, iconOnly = false, children }: Props) {
   return (
@@ -35,7 +35,7 @@ export function HelpPopover({ label, iconOnly = false, children }: Props) {
   )
 }
 
-/** Sección con título y filas ejemplo → explicación. */
+/** Section with a title and example → explanation rows. */
 export function HelpSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>

@@ -3,7 +3,7 @@ import { AuthError } from './api.ts'
 
 const FOLDER = 'application/vnd.google-apps.folder'
 const SHORTCUT = 'application/vnd.google-apps.shortcut'
-/** Archivos nativos de Google que se adjuntan exportados a PDF. */
+/** Native Google files, which are attached exported to PDF. */
 const EXPORTABLE = new Set([
   'application/vnd.google-apps.document',
   'application/vnd.google-apps.spreadsheet',
@@ -51,13 +51,13 @@ async function listChildren(token: string, folderId: string): Promise<DriveFile[
   return files
 }
 
-/** Tope para el total de una carpeta: protege de elegir por error una carpeta enorme. */
+/** Cap on a folder's total: protects against choosing a huge folder by mistake. */
 const MAX_FOLDER_SIZE = 200 * 1024 * 1024
 
-/** Pedidos en paralelo a Drive (listar carpetas o descargar archivos), para no exceder las cuotas de la API. */
+/** Parallel requests to Drive (listing folders or downloading files), so as not to exceed the API quotas. */
 const CONCURRENCY = 5
 
-/** Ejecuta fn sobre cada elemento, con a lo más `limit` en paralelo. */
+/** Runs fn on each element, with at most `limit` in parallel. */
 async function forEachConcurrently<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let next = 0
   const worker = async () => {
@@ -70,7 +70,7 @@ interface PendingFile {
   path: string
   id: string
   mimeType: string
-  /** Archivo nativo de Google (Docs, Sheets, Slides) que se exporta a PDF. */
+  /** Native Google file (Docs, Sheets, Slides) that is exported to PDF. */
   exportPdf: boolean
   size: number
 }
@@ -80,9 +80,9 @@ export type DriveTreeProgress =
   | { phase: 'downloading'; done: number; total: number }
 
 /**
- * Lee la carpeta completa y descarga todos sus archivos, para que los errores aparezcan al
- * cargarla y no a mitad de un envío. Los atajos se siguen; los archivos nativos de Google
- * que no se pueden exportar a PDF se omiten. Si algún archivo falla, se informan todos juntos.
+ * Reads the whole folder and downloads all its files, so errors show up when loading it
+ * and not in the middle of sending. Shortcuts are followed; native Google files that cannot
+ * be exported to PDF are skipped. If any file fails, they are all reported together.
  */
 export async function loadDriveTree(
   token: string,
@@ -91,9 +91,9 @@ export async function loadDriveTree(
 ): Promise<AttachmentTree> {
   const pending: PendingFile[] = []
   const emptyDirs: string[] = []
-  // Evita ciclos con atajos a carpetas que contienen al atajo.
+  // Avoids cycles with shortcuts to folders that contain the shortcut.
   const visited = new Set<string>([folder.id])
-  // Un nivel del árbol a la vez: las subcarpetas encontradas forman el nivel siguiente.
+  // One level of the tree at a time: the subfolders found make up the next level.
   let level = [{ id: folder.id, path: '' }]
 
   while (level.length > 0) {
@@ -121,7 +121,7 @@ export async function loadDriveTree(
     level = nextLevel
   }
 
-  // Los exportados no tienen tamaño hasta exportarlos; el tope cuenta solo los conocidos.
+  // Exported files have no size until exported; the cap counts only the known ones.
   const knownSize = pending.reduce((sum, file) => sum + file.size, 0)
   if (knownSize > MAX_FOLDER_SIZE) {
     throw new Error(
@@ -142,7 +142,7 @@ export async function loadDriveTree(
           : { path: file.path, data, mimeType: file.mimeType },
       )
     } catch (e) {
-      // Sin sesión no tiene sentido seguir: se pide iniciar sesión de nuevo.
+      // Without a session there is no point in continuing: the user is asked to sign in again.
       if (e instanceof AuthError) throw e
       failures.push(`${file.path}: ${(e as Error).message}`)
     }
@@ -156,7 +156,7 @@ export async function loadDriveTree(
   return buildTree(folder.name, entries, emptyDirs)
 }
 
-/** Tamaño en bytes según los datos del archivo; null si Drive no lo informa (archivos nativos de Google). */
+/** Size in bytes from the file's metadata; null if Drive does not report it (native Google files). */
 export async function getDriveFileSize(token: string, id: string): Promise<number | null> {
   const response = await driveFetch(
     token,
@@ -166,7 +166,7 @@ export async function getDriveFileSize(token: string, id: string): Promise<numbe
   return size ? Number(size) : null
 }
 
-/** Descarga un archivo. Con onBytes, informa los bytes recibidos a medida que llegan. */
+/** Downloads a file. With onBytes, reports the bytes received as they arrive. */
 export async function downloadDriveFile(
   token: string,
   id: string,
@@ -178,7 +178,7 @@ export async function downloadDriveFile(
   )
   if (!onBytes || !response.body) return new Uint8Array(await response.arrayBuffer())
 
-  // Se lee por partes para poder contar lo recibido.
+  // Read in chunks to be able to count what was received.
   const chunks: Uint8Array[] = []
   let received = 0
   const reader = response.body.getReader()
@@ -198,7 +198,7 @@ export async function downloadDriveFile(
   return data
 }
 
-/** Exporta un archivo nativo de Google a PDF (la API limita la exportación a 10 MB). */
+/** Exports a native Google file to PDF (the API limits exports to 10 MB). */
 export async function exportDriveFileAsPdf(token: string, id: string): Promise<Uint8Array> {
   const response = await driveFetch(
     token,
@@ -208,8 +208,8 @@ export async function exportDriveFileAsPdf(token: string, id: string): Promise<U
 }
 
 /**
- * Descarga un archivo suelto: los nativos de Google se exportan a PDF, como en las carpetas.
- * Con onBytes, informa el avance de la descarga (los exportados no tienen tamaño previo).
+ * Downloads a single file: native Google files are exported to PDF, as in folders.
+ * With onBytes, reports the download progress (exported files have no size beforehand).
  */
 export async function loadDriveFile(
   token: string,

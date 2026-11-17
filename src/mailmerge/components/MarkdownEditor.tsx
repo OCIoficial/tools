@@ -7,8 +7,8 @@ import CodeMirror from '@uiw/react-codemirror'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 
 /*
- * Colores y bordes desde las variables de Mantine: el editor sigue el tema claro u oscuro
- * sin cambiar de extensión, y se ve como los demás campos del template.
+ * Colors and borders from Mantine's variables: the editor follows the light or dark theme
+ * without switching extensions, and looks like the other template fields.
  */
 const theme = EditorView.theme({
   '&': {
@@ -30,7 +30,7 @@ const theme = EditorView.theme({
     backgroundColor: 'var(--mantine-primary-color-light) !important',
   },
   '.cm-placeholder': { color: 'var(--mantine-color-placeholder)' },
-  // Barra de estado de Vim (modo y línea de comandos ":").
+  // Vim status bar (mode and ":" command line).
   '.cm-vim-panel': {
     padding: '2px 12px',
     borderTop: '1px solid var(--mantine-color-default-border)',
@@ -43,7 +43,7 @@ const theme = EditorView.theme({
   '.cm-panels': { backgroundColor: 'transparent', color: 'inherit' },
   '.cm-panels-bottom': { borderTop: 'none' },
   '.cm-fat-cursor': { backgroundColor: 'var(--mantine-primary-color-filled) !important', color: 'var(--mantine-color-white) !important' },
-  // Etiquetas Liquid: {{ variable }} y {% if %}.
+  // Liquid tags: {{ variable }} and {% if %}.
   '.cm-liquid': {
     borderRadius: '3px',
     backgroundColor: 'var(--mantine-primary-color-light)',
@@ -59,7 +59,7 @@ const highlight = HighlightStyle.define([
   { tag: [tags.link, tags.url], color: 'var(--mantine-color-anchor)' },
   { tag: tags.monospace, color: 'var(--mantine-color-dimmed)' },
   { tag: tags.quote, color: 'var(--mantine-color-dimmed)', fontStyle: 'italic' },
-  // Los símbolos de Markdown (**, #, -, [ ]) atenuados, para que el texto se lea primero.
+  // Markdown symbols (**, #, -, [ ]) dimmed, so the text reads first.
   { tag: [tags.processingInstruction, tags.contentSeparator, tags.list], color: 'var(--mantine-color-dimmed)' },
 ])
 
@@ -81,7 +81,7 @@ const liquidTags = ViewPlugin.fromClass(
   { decorations: (plugin) => plugin.decorations },
 )
 
-/** Envuelve la selección con un marcador (Ctrl+B → **texto**), o lo quita si ya lo tiene. */
+/** Wraps the selection with a marker (Ctrl+B → **text**), or removes it if it already has one. */
 function toggleMark(mark: string) {
   const n = mark.length
   return (view: EditorView) => {
@@ -109,13 +109,13 @@ function toggleMark(mark: string) {
 
 const baseExtensions: Extension[] = [markdown(), syntaxHighlighting(highlight), liquidTags, theme, EditorView.lineWrapping]
 
-/** Ctrl+B / Ctrl+I; sin Vim, porque en Vim esas teclas mueven el cursor. */
+/** Ctrl+B / Ctrl+I; not with Vim, because in Vim those keys move the cursor. */
 const markKeymap = keymap.of([
   { key: 'Mod-b', run: toggleMark('**') },
   { key: 'Mod-i', run: toggleMark('*') },
 ])
 
-/** La extensión de Vim se descarga solo la primera vez que se activa. */
+/** The Vim extension is downloaded only the first time it is turned on. */
 let vimExtension: Promise<Extension> | null = null
 function loadVim() {
   vimExtension ??= import('@replit/codemirror-vim').then(({ vim }) => Prec.highest(vim({ status: true })))
@@ -123,7 +123,7 @@ function loadVim() {
 }
 
 export interface MarkdownEditorHandle {
-  /** Inserta texto donde está el cursor (o reemplaza la selección) y devuelve el foco al editor. */
+  /** Inserts text at the cursor (or replaces the selection) and gives focus back to the editor. */
   insert: (text: string) => void
 }
 
@@ -131,9 +131,9 @@ interface Props {
   value: string
   onChange: (value: string) => void
   onFocus?: () => void
-  /** Atajos de Vim, con barra de estado. */
+  /** Vim key bindings, with a status bar. */
   vim?: boolean
-  /** Sin cambios posibles (mientras se envía). */
+  /** No changes allowed (while sending). */
   readOnly?: boolean
   placeholder?: string
   'aria-label'?: string
@@ -178,7 +178,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorHandle, Props>(function M
       readOnly={readOnly}
       placeholder={placeholder}
       aria-label={ariaLabel}
-      // Tema propio (arriba); sin números de línea ni plegado: es un correo, no código.
+      // Own theme (above); no line numbers or folding: it is an email, not code.
       theme="none"
       basicSetup={{
         lineNumbers: false,

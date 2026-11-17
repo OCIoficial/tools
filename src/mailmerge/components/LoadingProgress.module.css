@@ -1,4 +1,4 @@
-/* Recuadro donde aparecerá el resultado (el árbol de archivos), para que la espera se vea. */
+/* Box where the result (the file tree) will appear, so the wait is visible. */
 .box {
   padding: 12px 14px;
   border: 1px solid var(--mantine-color-default-border);

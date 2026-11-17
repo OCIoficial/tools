@@ -2,25 +2,25 @@ import { hasCells, parseDelimited, trimRows } from './delimited.ts'
 import type { SpreadsheetSource } from './sources.ts'
 
 /**
- * Celdas de la primera tabla de un HTML. Google Sheets (y Excel) copian las celdas
- * seleccionadas como una <table>, que conserva los saltos de línea dentro de una celda.
+ * Cells of the first table in an HTML document. Google Sheets (and Excel) copy the selected
+ * cells as a <table>, which keeps the line breaks inside a cell.
  */
 export function parseHtmlTable(html: string): string[][] | null {
   const table = new DOMParser().parseFromString(html, 'text/html').querySelector('table')
   if (!table) return null
   return [...table.rows].map((row) =>
     [...row.cells].flatMap((cell) => {
-      // <br> es un salto de línea dentro de la celda.
+      // <br> is a line break inside the cell.
       for (const br of cell.querySelectorAll('br')) br.replaceWith('\n')
-      // Una celda combinada ocupa varias columnas: las demás quedan vacías, como en la planilla.
+      // A merged cell spans several columns: the others are left empty, as in the spreadsheet.
       return [cell.textContent ?? '', ...Array<string>(Math.max(0, cell.colSpan - 1)).fill('')]
     }),
   )
 }
 
 /**
- * Celdas de un pegado. Se usa el evento paste (no navigator.clipboard): no pide permisos y
- * funciona igual en el teléfono, con "Pegar" del menú del sistema.
+ * Cells of a paste. The paste event is used (not navigator.clipboard): it asks for no permissions
+ * and works the same on a phone, with "Paste" from the system menu.
  */
 export function readPastedTable(data: DataTransfer): string[][] {
   const html = data.getData('text/html')
@@ -32,11 +32,11 @@ export function readPastedTable(data: DataTransfer): string[][] {
   return rows
 }
 
-/** Planilla pegada: una sola hoja, sin Google. No se recarga: no hay de dónde. */
+/** Pasted spreadsheet: a single sheet, no Google. It is not reloaded: there is nowhere to reload from. */
 export function pastedSpreadsheet(rows: string[][]): SpreadsheetSource {
   return {
     canReload: false,
-    // Id fijo: el encabezado y la normalización de lo pegado se recuerdan entre pegados.
+    // Fixed id: the header and the normalization of pasted data are remembered between pastes.
     pick: async () => ({ id: 'clipboard', title: 'Pasted cells', sheets: ['Pasted'] }),
     loadSheet: async () => rows,
   }

@@ -4,9 +4,9 @@ import { formatSize } from '../attachments/tree.ts'
 import type { LoadProgress } from '../sources.ts'
 import classes from './LoadingProgress.module.css'
 
-/** Algo casi instantáneo no hace aparecer y desaparecer el recuadro. */
+/** Something almost instant does not make the box appear and disappear. */
 const SPINNER_DELAY = 300
-/** La barra solo aparece si la espera ya se nota: una barra que se llena en un instante no se alcanza a leer. */
+/** The bar only appears once the wait is noticeable: a bar that fills in an instant cannot be read. */
 const BAR_DELAY = 2000
 
 function describe({ done, total, unit }: LoadProgress): string | null {
@@ -16,8 +16,8 @@ function describe({ done, total, unit }: LoadProgress): string | null {
 }
 
 /**
- * Carga en curso: indicador animado desde los 300 ms, y barra desde los 2 s si el avance se
- * puede medir. Para lectores de pantalla, el texto se anuncia al cambiar de paso y cada 10 %.
+ * Load in progress: animated indicator after 300 ms, and a bar after 2 s if the progress can
+ * be measured. For screen readers, the text is announced when the step changes and every 10 %.
  */
 export function LoadingProgress({ progress }: { progress: LoadProgress }) {
   const [elapsed, setElapsed] = useState(0)
@@ -30,7 +30,7 @@ export function LoadingProgress({ progress }: { progress: LoadProgress }) {
   const percent =
     progress.done !== undefined && progress.total ? Math.min(100, (progress.done / progress.total) * 100) : null
   const detail = describe(progress)
-  // Anuncio para lectores de pantalla: solo cambia con el paso o cada 10 %, no con cada parte recibida.
+  // Announcement for screen readers: it only changes with the step or every 10 %, not with each chunk received.
   const announcement = percent === null ? progress.message : `${progress.message}, ${Math.floor(percent / 10) * 10}%`
 
   if (elapsed < SPINNER_DELAY) return null
@@ -38,7 +38,7 @@ export function LoadingProgress({ progress }: { progress: LoadProgress }) {
   return (
     <div className={classes.box}>
       <Stack gap={6}>
-        {/* En pantallas angostas el detalle pasa a otra línea en vez de cortar el nombre del archivo. */}
+        {/* On narrow screens the detail wraps to another line instead of cutting off the file name. */}
         <Group gap="sm" wrap="nowrap" align="flex-start">
           <Loader size={18} aria-hidden style={{ flex: 'none', marginTop: 1 }} />
           <Group gap={4} style={{ flex: 1, minWidth: 0, columnGap: 12 }} justify="space-between">

@@ -30,8 +30,8 @@ export default function MailMerge(props: AppProps) {
 }
 
 /**
- * Solo la estructura de la página. No lee el template ni los correos: si lo hiciera, se
- * re-dibujaría en cada tecla y arrastraría a todos los paneles. Cada panel lee del store.
+ * Only the page structure. It does not read the template or the emails: if it did, it would
+ * re-render on every keystroke and drag every panel along. Each panel reads from the store.
  */
 function App({ subpath }: AppProps) {
   const google = useGoogle()
@@ -49,13 +49,13 @@ function App({ subpath }: AppProps) {
   const hasEmails = useStore((state) => state.allEmails.length > 0)
   const sending = useSending()
 
-  // En el teléfono, Review fija Test y Send sobre las pestañas; el pie crece con la barra.
+  // On a phone, Review pins Test and Send above the tabs; the footer grows with the bar.
   const showSendBar = mobile && view === 'review' && hasEmails
   const { ref: sendBarRef, height: sendBarHeight } = useElementSize()
   const footerHeight = 64 + (showSendBar ? Math.ceil(sendBarHeight) : 0)
 
   return (
-    // En el teléfono, Edit y Review pasan del encabezado a una barra inferior.
+    // On a phone, Edit and Review move from the header to a bottom bar.
     <AppShell header={{ height: 60 }} footer={{ height: footerHeight, collapsed: !mobile }} padding="md">
       <AppShell.Header>
         <AppHeader>
@@ -74,7 +74,7 @@ function App({ subpath }: AppProps) {
               {google.error}
             </Notice>
           )}
-          {/* Edit se oculta en vez de desmontarse, para conservar el estado de sus paneles. */}
+          {/* Edit is hidden instead of unmounted, to keep the state of its panels. */}
           <div hidden={view !== 'edit'}>
             {sending && (
               <div style={{ marginBottom: 'var(--mantine-spacing-md)' }}>
@@ -84,11 +84,11 @@ function App({ subpath }: AppProps) {
                 </Notice>
               </div>
             )}
-            {/* Mientras se envía, un fieldset deshabilitado bloquea todos los campos y botones de Edit;
-                los editores de texto y las zonas de soltar archivos se bloquean aparte. El store lo
-                garantiza de todos modos (ver isSending). */}
+            {/* While sending, a disabled fieldset locks every field and button in Edit;
+                the text editors and the file drop zones are locked separately. The store
+                guarantees it anyway (see isSending). */}
             <fieldset disabled={sending} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
-              {/* Las columnas se estiran al mismo alto, así las bases de Spreadsheet y Attachments quedan alineadas. */}
+              {/* The columns stretch to the same height, so the bottoms of Spreadsheet and Attachments line up. */}
               <Grid gap="md">
                 <Grid.Col span={{ base: 12, md: 7 }}>
                   <SpreadsheetPanel />
@@ -104,7 +104,7 @@ function App({ subpath }: AppProps) {
               </Grid>
             </fieldset>
           </div>
-          {/* key: una planilla nueva reinicia la selección y los filtros de Review. */}
+          {/* key: a new spreadsheet resets Review's selection and filters. */}
           {view === 'review' && <ReviewView key={datasetVersion} />}
         </Stack>
       </AppShell.Main>

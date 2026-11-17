@@ -9,26 +9,26 @@ import classes from './PasteArea.module.css'
 interface Props {
   onPaste: (rows: string[][]) => void
   onError: (message: string) => void
-  /** Con datos ya cargados se muestra en una línea, para no empujar la tabla hacia abajo. */
+  /** With data already loaded it is shown on one line, so it does not push the table down. */
   compact: boolean
 }
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)
 
 /**
- * Zona para pegar celdas copiadas de una planilla. Es editable solo para recibir el pegado
- * (Ctrl+V, o "Pegar" del menú al mantener presionado en el teléfono); no acepta texto escrito.
- * El evento paste no pide permisos, a diferencia de navigator.clipboard.
+ * Zone to paste cells copied from a spreadsheet. It is editable only to receive the paste
+ * (Ctrl+V, or "Paste" from the menu after a long press on a phone); it does not accept typed text.
+ * The paste event asks for no permissions, unlike navigator.clipboard.
  */
 export function PasteArea({ onPaste, onError, compact }: Props) {
   const [focused, setFocused] = useState(false)
   const touch = usePrimaryTouch()
-  // Mientras se envía no se reemplazan los datos.
+  // While sending, the data is not replaced.
   const sending = useSending()
   const hintId = useId()
   const shortcut = isMac ? '⌘V' : 'Ctrl+V'
 
-  // Una instrucción para este dispositivo, no todas las variantes.
+  // One instruction for this device, not every variant.
   const hint = touch
     ? 'Copy cells in Google Sheets or Excel, then touch and hold here and tap Paste.'
     : focused
@@ -48,13 +48,13 @@ export function PasteArea({ onPaste, onError, compact }: Props) {
           </Text>
         )}
       </div>
-      {/* Capa editable transparente sobre toda la zona: recibe el foco, el pegado y el menú del teléfono. */}
+      {/* Transparent editable layer over the whole zone: it gets the focus, the paste and the phone's menu. */}
       <div
         className={classes.target}
         contentEditable={!sending}
         aria-disabled={sending || undefined}
         suppressContentEditableWarning
-        // Sin teclado en pantalla: en el teléfono solo se necesita el menú Pegar.
+        // No on-screen keyboard: on a phone only the Paste menu is needed.
         inputMode="none"
         role="textbox"
         aria-label="Paste cells"

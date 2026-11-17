@@ -10,7 +10,7 @@ const GLOBAL_OPTIONS: { key: keyof GlobalNormalization; label: string; descripti
   { key: 'invisible', label: 'Remove invisible characters', description: 'Non-breaking and zero-width spaces.' },
 ]
 
-/** Normalización y tabla de la planilla cargada. Solo se re-dibuja cuando cambian estos datos. */
+/** Normalization and table of the loaded spreadsheet. Only re-renders when this data changes. */
 export function NormalizedData() {
   const dataset = useStore((state) => state.normalized)
   const normalization = useStore(currentNormalization)

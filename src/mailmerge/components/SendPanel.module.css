@@ -1,4 +1,4 @@
-/* Barra fija del teléfono, sobre las pestañas Edit/Review. */
+/* Fixed bar on a phone, above the Edit/Review tabs. */
 .bar {
   display: flex;
   flex-direction: column;

@@ -4,19 +4,19 @@ import type { SpreadsheetSource } from './sources.ts'
 const TEXT_EXTENSIONS = ['csv', 'tsv', 'txt']
 const WORKBOOK_EXTENSIONS = ['xlsx', 'xlsm', 'ods']
 
-/** Para el selector de archivos del sistema: muestra solo estos formatos. */
+/** For the system file picker: shows only these formats. */
 export const SPREADSHEET_ACCEPT = [...TEXT_EXTENSIONS, ...WORKBOOK_EXTENSIONS].map((ext) => `.${ext}`).join(',')
 
 const extensionOf = (name: string) => name.split('.').pop()?.toLowerCase() ?? ''
 
-/** Hojas de un libro de Excel o LibreOffice, como texto formateado (lo que se ve en cada celda). */
+/** Sheets of an Excel or LibreOffice workbook, as formatted text (what each cell shows). */
 async function readWorkbook(data: Uint8Array): Promise<Map<string, string[][]>> {
-  // Import dinámico: SheetJS se descarga solo la primera vez que se sube un libro.
+  // Dynamic import: SheetJS is downloaded only the first time a workbook is uploaded.
   const XLSX = await import('xlsx')
   const workbook = XLSX.read(data, { type: 'array' })
   return new Map(
     workbook.SheetNames.map((name) => {
-      // raw: false entrega el texto formateado ("31-03-2026", "$45.000"), como la Sheets API.
+      // raw: false returns the formatted text ("31-03-2026", "$45.000"), like the Sheets API.
       const rows = XLSX.utils.sheet_to_json<string[]>(workbook.Sheets[name], { header: 1, raw: false, defval: '' })
       return [name, trimRows(rows.map((cells) => cells.map(String)))]
     }),
@@ -24,8 +24,8 @@ async function readWorkbook(data: Uint8Array): Promise<Map<string, string[][]>> 
 }
 
 /**
- * Planilla subida como archivo: CSV (con separador y codificación detectados), Excel o
- * LibreOffice. Se lee una vez al subirla; no se recarga, porque el archivo es una copia.
+ * Spreadsheet uploaded as a file: CSV (with detected separator and encoding), Excel or
+ * LibreOffice. It is read once when uploaded; it is not reloaded, because the file is a copy.
  */
 export async function fileSpreadsheet(file: File): Promise<SpreadsheetSource> {
   const extension = extensionOf(file.name)
@@ -49,7 +49,7 @@ export async function fileSpreadsheet(file: File): Promise<SpreadsheetSource> {
 
   return {
     canReload: false,
-    // Id por nombre: subir de nuevo el mismo archivo recupera su encabezado y normalización.
+    // Id by name: uploading the same file again restores its header and normalization.
     pick: async () => ({ id: `file:${file.name}`, title: file.name, sheets: names }),
     loadSheet: async (_spreadsheet, sheet) => sheets.get(sheet) ?? [],
   }

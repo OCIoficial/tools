@@ -58,7 +58,7 @@ function FileIcon({ zip }: { zip: boolean }) {
   )
 }
 
-/** El HTML se aísla en un iframe sin scripts (ver docs/spec-acceso-google.md, sección 4). */
+/** The HTML is isolated in an iframe without scripts (see docs/google-access.md, section 4). */
 function EmailBody({ html, device }: { html: string; device: Device }) {
   const [height, setHeight] = useState(120)
   return (
@@ -89,7 +89,7 @@ function AttachmentChips({ attachments }: { attachments: ResolvedAttachment[] })
           </span>
         )
         return attachment.kind === 'zip' ? (
-          // Un ZIP se expande para ver qué archivos incluye.
+          // A ZIP is expanded to show which files it includes.
           <details key={i} className={classes.chip}>
             <summary title={`${attachment.entries.length} files, click to list them`}>{title}</summary>
             <ul className={classes.zipFiles}>
@@ -239,33 +239,33 @@ function EmailDetail({
   )
 }
 
-/** Revisión de los correos generados; lee del store los correos, las filas excluidas y el envío. */
+/** Review of the generated emails; reads the emails, the excluded rows and the sending from the store. */
 export function ReviewView() {
-  // Todas las filas, también las excluidas (se muestran atenuadas).
+  // Every row, including the excluded ones (shown dimmed).
   const emails = useStore((state) => state.allEmails)
   const excluded = useStore((state) => state.excluded)
   const templateErrors = useStore((state) => state.compiled.errors)
   const problemCount = useStore((state) => state.problemCount)
   const statuses = useStore((state) => state.statuses)
-  // Mientras se envía no se cambia qué filas se incluyen: la lista es la que se está enviando.
+  // While sending, which rows are included does not change: the list is the one being sent.
   const sending = useSending()
   const onExcludedChange = setExcluded
-  // Por defecto se muestra el primer correo como ejemplo.
+  // By default the first email is shown as an example.
   const [selected, setSelected] = useState(0)
   const [filter, setFilter] = useState<Filter>('all')
   const [device, setDevice] = useState<Device>('desktop')
   const reducedMotion = useReducedMotion()
   const mobile = useIsMobile()
-  // En el teléfono no caben lista y vista previa juntas: tocar un correo abre su vista previa.
+  // On a phone the list and the preview do not fit together: tapping an email opens its preview.
   const [detailOpen, setDetailOpen] = useState(false)
 
-  // Los problemas de filas excluidas no cuentan: no se envían.
+  // Problems in excluded rows do not count: they are not sent.
   const included = emails.filter((email) => !excluded.has(email.index))
   const withProblems = included.filter((email) => email.problems.length > 0)
   const lastClicked = useRef<number | null>(null)
-  // Si ya no quedan problemas, el filtro vuelve solo a "All".
+  // If no problems are left, the filter goes back to "All" by itself.
   const activeFilter: Filter = withProblems.length === 0 ? 'all' : filter
-  // El mismo orden que usa el envío (ver reviewList y sendAll).
+  // The same order the sending uses (see reviewList and sendAll).
   const visible = reviewList({ allEmails: emails, excluded }, activeFilter)
   const current = emails.find((email) => email.index === selected) ?? visible[0]
 
@@ -275,7 +275,7 @@ export function ReviewView() {
     lastClicked.current = index
   }
 
-  // En estado intermedio, un clic incluye todas, igual que en la tabla de Edit.
+  // In the indeterminate state, a click includes them all, as in the Edit table.
   const allIncluded = included.length === emails.length
   const toggleAll = () => onExcludedChange(allIncluded ? new Set(emails.map((email) => email.index)) : new Set())
 

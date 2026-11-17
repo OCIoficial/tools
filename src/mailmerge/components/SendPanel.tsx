@@ -14,7 +14,7 @@ function TestButton({ controls, short = false }: { controls: SendControls; short
       disabled={!controls.canTest}
       onClick={controls.sendTest}
     >
-      {/* En la barra del teléfono no hay espacio para "Send test". */}
+      {/* In the phone bar there is no room for "Send test". */}
       {short ? 'Test' : 'Send test'}
     </Button>
   )
@@ -38,7 +38,7 @@ function SendingProgress({ controls }: { controls: SendControls }) {
   )
 }
 
-/** Correos sin confirmar: pudieron haber salido. Se reintentan solo a pedido, tras revisar Gmail. */
+/** Unconfirmed emails: they may have gone out. They are retried only on request, after checking Gmail. */
 function UnconfirmedNote({ controls, compact = false }: { controls: SendControls; compact?: boolean }) {
   const count = controls.unconfirmed.length
   if (count === 0 || controls.running) return null
@@ -91,7 +91,7 @@ function BlockingNote({ blocking }: { blocking: number }) {
   )
 }
 
-/** Una carga en curso cambiaría los correos a mitad del envío. */
+/** A load in progress would change the emails in the middle of sending. */
 function LoadingNote() {
   return (
     <Text size="sm" c="dimmed">
@@ -102,7 +102,7 @@ function LoadingNote() {
 
 export function SendPanel() {
   const controls = useSendControls()
-  // Teléfono: los botones y el progreso van en la barra fija; aquí queda solo la dirección de prueba.
+  // Phone: the buttons and the progress go in the fixed bar; only the test address stays here.
   const compact = useIsMobile()
   const { sent, failed, pending, unconfirmed, emails, blocking } = controls
 
@@ -182,8 +182,8 @@ export function SendPanel() {
 }
 
 /**
- * Barra fija sobre las pestañas del teléfono: Test y Send siempre al alcance del pulgar,
- * con una línea que explica por qué Send está deshabilitado.
+ * Fixed bar above the phone's tabs: Test and Send always within thumb reach,
+ * with a line that explains why Send is disabled.
  */
 export function SendBar() {
   const controls = useSendControls()
@@ -211,9 +211,9 @@ export function SendBar() {
     )
   }
 
-  // Una sola línea de estado: primero el resultado del último envío, luego por qué no se puede enviar.
+  // A single status line: first the result of the last send, then why it cannot be sent.
   let status = null
-  // Lo no confirmado va primero: trae el botón para reintentar, y explica por qué se detuvo.
+  // Unconfirmed goes first: it brings the retry button, and explains why sending stopped.
   if (unconfirmed.length > 0) {
     status = <UnconfirmedNote controls={controls} compact />
   } else if (controls.stopReason) {
@@ -258,7 +258,7 @@ export function SendBar() {
   )
 }
 
-/** Confirmación del envío; una sola, sirve tanto a la tarjeta como a la barra. */
+/** Send confirmation; a single one, used by both the card and the bar. */
 export function SendConfirmModal() {
   const controls = useSendControls()
   const retrying = controls.confirming === 'unconfirmed'

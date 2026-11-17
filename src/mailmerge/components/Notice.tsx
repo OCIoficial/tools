@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import classes from './Notice.module.css'
 
 /**
- * warning: algo que el usuario debe corregir antes de enviar (un correo inválido, un adjunto que falta).
- * error: algo que impide generar los correos (sintaxis del template).
+ * warning: something the user must fix before sending (an invalid email, a missing attachment).
+ * error: something that prevents generating the emails (template syntax).
  */
 export type Tone = 'warning' | 'error'
 

@@ -7,7 +7,7 @@
   border-radius: var(--mantine-radius-sm);
   background: var(--mantine-color-body);
   cursor: grab;
-  /* Evita que el navegador haga scroll en vez de arrastrar en pantallas táctiles. */
+  /* Keeps the browser from scrolling instead of dragging on touch screens. */
   touch-action: none;
 }
 
@@ -20,7 +20,7 @@
   outline-offset: 1px;
 }
 
-/* Los campos conservan su cursor y el scroll táctil normal. */
+/* Fields keep their cursor and normal touch scrolling. */
 .step :is(input, textarea, button, label) {
   cursor: auto;
   touch-action: auto;
@@ -58,6 +58,6 @@
 }
 
 .fields {
-  /* Alinea los campos con el nombre del paso (ancho de la manija + separación). */
+  /* Aligns the fields with the step name (handle width + gap). */
   padding-left: 24px;
 }

@@ -73,7 +73,7 @@ interface SortableStepProps {
   onRemove: () => void
 }
 
-/** Arrastrar desde un campo o botón del paso no debe moverlo (seleccionar texto, escribir, quitar). */
+/** Dragging from a field or button of the step must not move it (selecting text, typing, removing). */
 function fromControl(event: { target: EventTarget; currentTarget: EventTarget }) {
   return event.target !== event.currentTarget && (event.target as Element).closest('input, textarea, button, label') !== null
 }
@@ -93,7 +93,7 @@ function SortableStep({ id, step, animate, onChange, onRemove }: SortableStepPro
         if (!fromControl(event)) listeners?.onPointerDown?.(event)
       }}
       onKeyDown={(event) => {
-        // Solo con foco en la caja: Espacio dentro de un campo debe escribir un espacio.
+        // Only with focus on the box: Space inside a field must type a space.
         if (event.target === event.currentTarget) listeners?.onKeyDown?.(event)
       }}
     >
@@ -124,7 +124,7 @@ export function ColumnSteps({ columnKey, steps, onChange }: Props) {
   const [dragging, setDragging] = useState(false)
   const animate = !useReducedMotion()
   const sensors = useSensors(
-    // Un pequeño umbral para que un clic en la manija no cuente como arrastre.
+    // A small threshold so a click on the handle does not count as a drag.
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
@@ -147,7 +147,7 @@ export function ColumnSteps({ columnKey, steps, onChange }: Props) {
       width={340}
       shadow="md"
       trapFocus
-      // Escape cancela el arrastre con teclado; no debe cerrar el popover al mismo tiempo.
+      // Escape cancels a keyboard drag; it must not close the popover at the same time.
       closeOnEscape={!dragging}
     >
       <Popover.Target>

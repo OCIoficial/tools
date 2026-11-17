@@ -51,7 +51,7 @@ async function getTokenClient() {
   return tokenClient
 }
 
-/** Debe llamarse desde una acción del usuario (abre una ventana emergente). */
+/** Must be called from a user action (it opens a popup). */
 export async function requestAccessToken(): Promise<AccessToken> {
   const client = await getTokenClient()
   return new Promise((resolve, reject) => {

@@ -18,7 +18,7 @@
   background: var(--mantine-color-default-hover);
 }
 
-/* Listo para pegar: borde sólido de color, como un campo con foco. */
+/* Ready to paste: solid colored border, like a focused field. */
 .area[data-focused] {
   border-style: solid;
   border-color: var(--mantine-primary-color-filled);
@@ -35,7 +35,7 @@
   inset: 0;
   cursor: pointer;
   outline: none;
-  /* Invisible pero tocable: el texto y el cursor no se ven; el foco lo muestra .area. */
+  /* Invisible but tappable: the text and caret are hidden; .area shows the focus. */
   color: transparent;
   caret-color: transparent;
   overflow: hidden;

@@ -7,21 +7,21 @@ import { DEFAULT_SHEET_SETTINGS, type SheetSettings } from './merge/sheetSetting
 import { EMPTY_TEMPLATE, type EmailTemplate } from './merge/template.ts'
 
 /**
- * Estado compartido de la app. Cada componente lee con un selector solo lo que usa, así
- * escribir en Subject no re-dibuja la tabla, los adjuntos ni el encabezado.
+ * Shared app state. Each component reads only what it uses with a selector, so typing in
+ * Subject does not re-render the table, the attachments or the header.
  *
- * Reglas para los selectores (Zustand 5): devolver valores ya guardados en el estado o
- * primitivos. Un selector que arma un objeto o arreglo nuevo en cada llamada re-dibuja sin fin.
+ * Rules for selectors (Zustand 5): return values already stored in the state, or primitives.
+ * A selector that builds a new object or array on every call re-renders forever.
  */
 
 export type SendStatus =
   | { state: 'sending' }
   | { state: 'sent'; at: number }
   | { state: 'failed'; error: string }
-  /** Sin respuesta de Gmail: pudo haberse enviado. "Send remaining" no lo reintenta. */
+  /** No response from Gmail: it may have been sent. "Send remaining" does not retry it. */
   | { state: 'unconfirmed'; error: string }
 
-/** Qué envía el diálogo de confirmación: los pendientes, o reintentar los no confirmados. */
+/** What the confirmation dialog sends: the pending emails, or a retry of the unconfirmed ones. */
 export type SendMode = 'pending' | 'unconfirmed'
 
 export interface SendProgress {
@@ -30,46 +30,46 @@ export interface SendProgress {
 }
 
 interface State {
-  /** Guardado en localStorage. */
+  /** Saved in localStorage. */
   template: EmailTemplate
-  /** Encabezado y normalización por hoja (ver sheetKey); guardado en localStorage. */
+  /** Header and normalization per sheet (see sheetKey); saved in localStorage. */
   sheetSettings: Record<string, SheetSettings>
   dataset: Dataset | null
-  /** Cambia con cada planilla cargada; reinicia el estado local de Review. */
+  /** Changes with each loaded spreadsheet; resets Review's local state. */
   datasetVersion: number
-  /** Filas que no se envían, por índice. */
+  /** Rows that are not sent, by index. */
   excluded: Set<number>
-  /** Adjuntos que van en todos los correos; no se guardan entre sesiones (ni sus nombres). */
+  /** Attachments that go in every email; not saved between sessions (nor their names). */
   shared: SharedAttachment[]
-  /** Carpetas o archivos comprimidos con sus rutas; no se guardan entre sesiones (ni sus rutas). */
+  /** Folders or archives with their paths; not saved between sessions (nor their paths). */
   sources: PathSource[]
 
-  // Derivados: se recalculan en las acciones, nunca en los componentes.
+  // Derived: recomputed in the actions, never in the components.
   normalized: NormalizedDataset | null
   compiled: CompiledTemplate
-  /** Todas las filas (Review también muestra las excluidas). */
+  /** Every row (Review also shows the excluded ones). */
   allEmails: RenderedEmail[]
-  /** Solo las incluidas: las que se envían. */
+  /** Only the included ones: the ones that are sent. */
   emails: RenderedEmail[]
-  /** Correos incluidos con algo que corregir. */
+  /** Included emails with something to fix. */
   problemCount: number
 
-  /** Cargas en curso (planilla o adjuntos): no se puede empezar a enviar hasta que terminen. */
+  /** Loads in progress (spreadsheet or attachments): sending cannot start until they finish. */
   loads: number
 
-  // Envío.
+  // Sending.
   statuses: Map<number, SendStatus>
   progress: SendProgress | null
-  /** Motivo por el que se detuvo un envío antes de terminar (sesión, límite diario o Stop). */
+  /** Why a send stopped before finishing (session, daily limit or Stop). */
   stopReason: string | null
-  /** null = aún no editada: se usa el correo de la cuenta conectada. */
+  /** null = not edited yet: the signed-in account's email is used. */
   testAddress: string | null
   testing: boolean
-  /** Diálogo de confirmación abierto, y para qué envío. */
+  /** Confirmation dialog open, and for which send. */
   confirming: SendMode | false
 }
 
-// --- localStorage: mismas claves y formato que antes, así no se pierde lo guardado ------------
+// --- localStorage: same keys and format as before, so nothing saved is lost -------------------
 
 const TEMPLATE_KEY = 'mail-merge:template'
 const SHEET_SETTINGS_KEY = 'mail-merge:sheet-settings'
@@ -87,17 +87,17 @@ function save(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // Sin espacio o bloqueado: la app sigue funcionando, solo no se recuerda.
+    // Out of space or blocked: the app keeps working, it just does not remember.
   }
 }
 
-// --- Derivados ----------------------------------------------------------------------------------
+// --- Derived ------------------------------------------------------------------------------------
 
 export function settingsFor(state: Pick<State, 'sheetSettings'>, key: string | undefined): SheetSettings {
   return key ? { ...DEFAULT_SHEET_SETTINGS, ...state.sheetSettings[key] } : DEFAULT_SHEET_SETTINGS
 }
 
-/** Normalización de la hoja actual; misma referencia mientras no cambie (apta para selectores). */
+/** Normalization of the current sheet; same reference while it does not change (fit for selectors). */
 export function currentNormalization(state: Pick<State, 'sheetSettings' | 'dataset'>): Normalization {
   const key = state.dataset?.sheetKey
   return (key && state.sheetSettings[key]?.normalization) || DEFAULT_SHEET_SETTINGS.normalization
@@ -121,7 +121,7 @@ function withNormalized(state: Pick<State, 'dataset' | 'sheetSettings'>) {
 
 // --- Store --------------------------------------------------------------------------------------
 
-/** Lo guardado antes puede traer rutas de adjuntos: ahora viven con su fuente y no se guardan. */
+/** Older saved data may include attachment paths: they now live with their source and are not saved. */
 function loadTemplate(): EmailTemplate {
   const { attachments: _, ...saved } = load<Partial<EmailTemplate> & { attachments?: unknown }>(TEMPLATE_KEY, {})
   return { ...EMPTY_TEMPLATE, ...saved }
@@ -152,16 +152,16 @@ const get = useStore.getState
 const set = useStore.setState
 
 /**
- * Mientras se envía, todo lo que cambia los correos o cuáles se envían queda bloqueado: así lo
- * que muestra Review es exactamente lo que sale, en el mismo orden. La interfaz también se
- * bloquea; esta guarda es la garantía aunque algo se escape (un atajo, una carga que termina).
+ * While sending, everything that changes the emails or which ones are sent is locked: so what
+ * Review shows is exactly what goes out, in the same order. The UI is locked too; this guard
+ * is the guarantee even if something slips through (a shortcut, a load that finishes).
  */
 export const isSending = (state: Pick<State, 'progress'> = get()) => state.progress !== null
 
-/** Para la interfaz: true mientras se envía (la edición queda bloqueada). */
+/** For the UI: true while sending (editing is locked). */
 export const useSending = () => useStore(isSending)
 
-/** Orden de Review: todas las filas en el orden de la planilla, o solo las incluidas con problemas. */
+/** Review order: every row in spreadsheet order, or only the included ones with problems. */
 export function reviewList(
   state: Pick<State, 'allEmails' | 'excluded'>,
   filter: 'all' | 'problems' = 'all',
@@ -170,7 +170,7 @@ export function reviewList(
   return state.allEmails.filter((email) => !state.excluded.has(email.index) && email.problems.length > 0)
 }
 
-/** Cuenta una carga en curso mientras dura `task`. */
+/** Counts a load in progress while `task` runs. */
 export async function trackLoad<T>(task: () => Promise<T>): Promise<T> {
   set((state) => ({ loads: state.loads + 1 }))
   try {
@@ -180,7 +180,7 @@ export async function trackLoad<T>(task: () => Promise<T>): Promise<T> {
   }
 }
 
-/** Los correos se regeneran al dejar de escribir, no en cada tecla. */
+/** Emails are regenerated when the user stops typing, not on every keystroke. */
 const EMAILS_DELAY = 150
 let emailsTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -190,7 +190,7 @@ function recomputeEmailsNow() {
   set(withEmails(get()))
 }
 
-/** Regenera los correos si quedó una regeneración pendiente (antes de enviar). */
+/** Regenerates the emails if a regeneration is pending (before sending). */
 export function flushEmails() {
   if (emailsTimer !== undefined) recomputeEmailsNow()
 }
@@ -207,7 +207,7 @@ export function updateTemplate(patch: Partial<EmailTemplate>) {
   recomputeEmailsSoon()
 }
 
-/** Planilla nueva: las filas excluidas y el estado de envío dejan de corresponder a las mismas filas. */
+/** New spreadsheet: the excluded rows and the sending state no longer refer to the same rows. */
 export function setDataset(dataset: Dataset | null) {
   if (isSending()) return
   set((state) => {
@@ -229,7 +229,7 @@ export function updateSheetSettings(key: string, patch: Partial<SheetSettings>) 
   if (isSending()) return
   set((state) => {
     const sheetSettings = { ...state.sheetSettings, [key]: { ...settingsFor(state, key), ...patch } }
-    // Solo la hoja cargada afecta los datos normalizados y los correos.
+    // Only the loaded sheet affects the normalized data and the emails.
     if (key !== state.dataset?.sheetKey || !patch.normalization) return { sheetSettings }
     const normalized = withNormalized({ ...state, sheetSettings })
     return { sheetSettings, ...normalized, ...withEmails({ ...state, ...normalized }) }
@@ -248,8 +248,8 @@ export function setExcluded(excluded: Set<number>) {
 }
 
 /**
- * Cambia los adjuntos. Al escribir (nombres, rutas) los correos se regeneran al dejar de
- * escribir; al agregar, quitar o reordenar, de inmediato.
+ * Changes the attachments. When typing (names, paths) the emails are regenerated once the user
+ * stops typing; when adding, removing or reordering, right away.
  */
 function setAttachments(patch: Partial<Pick<State, 'shared' | 'sources'>>, typing: boolean) {
   if (isSending()) return
@@ -263,7 +263,7 @@ function setAttachments(patch: Partial<Pick<State, 'shared' | 'sources'>>, typin
   }
 }
 
-/** Con una función, porque una carga puede terminar después de otros cambios. */
+/** With a function, because a load may finish after other changes. */
 export function updateShared(update: (shared: SharedAttachment[]) => SharedAttachment[], { typing = false } = {}) {
   setAttachments({ shared: update(get().shared) }, typing)
 }
@@ -272,7 +272,7 @@ export function updateSources(update: (sources: PathSource[]) => PathSource[], {
   setAttachments({ sources: update(get().sources) }, typing)
 }
 
-// Envío: el estado vive aquí; la lógica de envío está en mail/sending.ts.
+// Sending: the state lives here; the sending logic is in mail/sending.ts.
 export const setSendState = (
   patch: Partial<Pick<State, 'progress' | 'stopReason' | 'testing' | 'confirming' | 'testAddress'>>,
 ) => set(patch)

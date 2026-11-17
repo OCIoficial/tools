@@ -5,10 +5,10 @@ import { splitAddresses } from '../merge/render.ts'
 const CRLF = '\r\n'
 const encoder = new TextEncoder()
 
-/** Base64 en líneas de 76 caracteres, como exige MIME. */
+/** Base64 in 76-character lines, as MIME requires. */
 export function base64Lines(bytes: Uint8Array): string {
   let binary = ''
-  // En bloques, para no exceder el máximo de argumentos de String.fromCharCode.
+  // In chunks, so as not to exceed the maximum number of arguments of String.fromCharCode.
   for (let i = 0; i < bytes.length; i += 0x8000) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
   }
@@ -16,8 +16,8 @@ export function base64Lines(bytes: Uint8Array): string {
 }
 
 /**
- * Base64 de los adjuntos, por contenido: un adjunto común a todos los correos se codifica una
- * vez, no una por destinatario.
+ * Base64 of the attachments, by content: an attachment shared by every email is encoded once,
+ * not once per recipient.
  */
 const base64Cache = new LruCache<Uint8Array, string>(96 * 1024 * 1024, (text) => text.length)
 
@@ -33,8 +33,8 @@ function attachmentBase64(data: Uint8Array): string {
 const isAscii = (text: string) => /^[\x20-\x7e]*$/.test(text)
 
 /**
- * Codifica un texto con caracteres no ASCII como "encoded words" (RFC 2047), en trozos de
- * hasta 45 bytes sin cortar caracteres, separados por un pliegue de línea.
+ * Encodes text with non-ASCII characters as "encoded words" (RFC 2047), in chunks of
+ * up to 45 bytes without splitting characters, separated by a line fold.
  */
 export function encodeHeaderText(text: string, separator = `${CRLF} `): string {
   if (isAscii(text)) return text
@@ -51,7 +51,7 @@ export function encodeHeaderText(text: string, separator = `${CRLF} `): string {
   return words.map((word) => `=?UTF-8?B?${base64Lines(encoder.encode(word))}?=`).join(separator)
 }
 
-/** "José <a@x.cl>, b@y.cl" → nombres codificados y direcciones separadas por coma. */
+/** "José <a@x.cl>, b@y.cl" → encoded names and comma-separated addresses. */
 export function encodeAddressList(value: string): string {
   return splitAddresses(value)
     .map((entry) => {
@@ -65,7 +65,7 @@ export function encodeAddressList(value: string): string {
     .join(', ')
 }
 
-/** Texto plano a partir del HTML, para la parte alternativa del mensaje. */
+/** Plain text from the HTML, for the alternative part of the message. */
 export function htmlToText(html: string): string {
   const doc = new DOMParser().parseFromString(`<!doctype html><html><body>${html}</body></html>`, 'text/html')
   doc.querySelectorAll('br').forEach((br) => br.replaceWith('\n'))
@@ -91,8 +91,8 @@ export interface MessageFields {
 }
 
 /**
- * Arma el mensaje completo (RFC 5322 / MIME). Sin "From": Gmail lo agrega con el nombre de la cuenta.
- * Gmail envía también a los destinatarios de Bcc y quita ese encabezado antes de entregar.
+ * Builds the complete message (RFC 5322 / MIME). No "From": Gmail adds it with the account name.
+ * Gmail also sends to the Bcc recipients and removes that header before delivering.
  */
 export function buildMessage(fields: MessageFields, attachments: AttachmentContent[]): Uint8Array {
   const random = () => crypto.randomUUID().replace(/-/g, '')
@@ -128,8 +128,8 @@ export function buildMessage(fields: MessageFields, attachments: AttachmentConte
   ]
 
   for (const attachment of attachments) {
-    // Nombre en dos formas: encoded word (clientes antiguos) y RFC 2231 (filename*).
-    // Como Gmail, el encoded word va entre comillas.
+    // Name in two forms: encoded word (old clients) and RFC 2231 (filename*).
+    // Like Gmail, the encoded word goes in quotes.
     const name = quoteParam(isAscii(attachment.filename) ? attachment.filename : encodeHeaderText(attachment.filename, ' '))
     const extended = `UTF-8''${encodeURIComponent(attachment.filename)}`
     parts.push(

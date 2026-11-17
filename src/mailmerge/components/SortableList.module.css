@@ -27,7 +27,7 @@
   background: none;
   color: var(--mantine-color-dimmed);
   cursor: grab;
-  /* Evita que el navegador haga scroll en vez de arrastrar en pantallas táctiles. */
+  /* Keeps the browser from scrolling instead of dragging on touch screens. */
   touch-action: none;
 }
 

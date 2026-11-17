@@ -1,13 +1,13 @@
 /**
- * Archivo con su contenido ya descargado: el árbol completo se descarga al cargarlo, así
- * los errores aparecen antes de enviar y al enviar no se descarga nada.
+ * File with its contents already downloaded: the whole tree is downloaded when it is loaded, so
+ * errors show up before sending and nothing is downloaded while sending.
  */
 export interface FileNode {
   kind: 'file'
   id: string
-  /** Nombre en el árbol; es el que usan las rutas de adjuntos. */
+  /** Name in the tree; it is the one attachment paths use. */
   name: string
-  /** Nombre con el que se adjunta (un Google Doc exportado lleva ".pdf"). */
+  /** Name it is attached with (an exported Google Doc gets ".pdf"). */
   filename: string
   mimeType: string
   size: number
@@ -18,7 +18,7 @@ export interface DirNode {
   kind: 'dir'
   id: string
   name: string
-  /** Drive permite nombres repetidos en una carpeta, así que no es un mapa. */
+  /** Drive allows repeated names in a folder, so this is not a map. */
   children: TreeNode[]
 }
 
@@ -32,12 +32,12 @@ export interface AttachmentTree {
 }
 
 export interface TreeEntry {
-  /** Ruta relativa a la raíz, separada por "/". */
+  /** Path relative to the root, separated by "/". */
   path: string
   data: Uint8Array
-  /** Si falta, se deduce de la extensión. */
+  /** If missing, inferred from the extension. */
   mimeType?: string
-  /** Si falta, el nombre del archivo en la ruta. */
+  /** If missing, the file name in the path. */
   filename?: string
 }
 
@@ -65,7 +65,7 @@ export const mimeTypeFromName = (name: string) =>
 let nextId = 0
 const newId = () => `n${nextId++}`
 
-/** Un archivo suelto (o dentro de un árbol). Sin mimeType, se deduce de la extensión. */
+/** A single file (or one inside a tree). Without a mimeType, it is inferred from the extension. */
 export function fileNode(name: string, data: Uint8Array, mimeType?: string, filename = name): FileNode {
   return {
     kind: 'file',
@@ -78,7 +78,7 @@ export function fileNode(name: string, data: Uint8Array, mimeType?: string, file
   }
 }
 
-/** Arma el árbol a partir de una lista plana de archivos; las carpetas se crean según las rutas. */
+/** Builds the tree from a flat list of files; folders are created from the paths. */
 export function buildTree(name: string, entries: TreeEntry[], emptyDirs: string[] = []): AttachmentTree {
   const root: DirNode = { kind: 'dir', id: newId(), name, children: [] }
 
@@ -122,17 +122,17 @@ export function hasGlob(path: string): boolean {
   return /[*?]/.test(path)
 }
 
-/** Convierte un segmento con comodines (`*`, `?`) en una expresión regular exacta. */
+/** Turns a segment with wildcards (`*`, `?`) into an exact regular expression. */
 function segmentPattern(segment: string): RegExp {
   const source = segment.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]')
   return new RegExp(`^${source}$`)
 }
 
 /**
- * Busca la ruta en el árbol. Comparación exacta; `*` y `?` dentro de un nombre,
- * `**` para cualquier cantidad de carpetas. Devuelve todos los nodos que calzan.
+ * Looks up the path in the tree. Exact comparison; `*` and `?` within a name,
+ * `**` for any number of folders. Returns every node that matches.
  */
-/** Lo que calzó con una ruta, con su ubicación (nombres desde la raíz, incluido el propio). */
+/** What matched a path, with its location (names from the root, including its own). */
 export interface PathMatch {
   node: TreeNode
   path: string[]
@@ -148,7 +148,7 @@ export function findPath(tree: AttachmentTree, path: string): PathMatch[] {
     const last = index === segments.length - 1
     if (segment === '**') {
       if (last) {
-        // "a/**" calza con todo lo que hay dentro de a.
+        // "a/**" matches everything inside a.
         for (const child of node.children) results.set(child, [...at, child.name])
         return
       }
@@ -167,7 +167,7 @@ export function findPath(tree: AttachmentTree, path: string): PathMatch[] {
   return [...results].map(([node, path]) => ({ node, path }))
 }
 
-/** Archivos dentro de una carpeta, con su ruta relativa a ella. */
+/** Files inside a folder, with their path relative to it. */
 export function filesIn(dir: DirNode, prefix = ''): { path: string; file: FileNode }[] {
   return dir.children.flatMap((child) =>
     child.kind === 'file'

@@ -34,7 +34,7 @@ const updateSource = (id: string, patch: Partial<PathSource>, typing = false) =>
     typing,
   })
 
-/** Lee archivos comprimidos del computador; los que fallan se informan juntos al final. */
+/** Reads archives from the computer; the ones that fail are reported together at the end. */
 async function readUploads({ files, folders }: Dropped, onProgress: OnProgress): Promise<Loaded[]> {
   const loaded: Loaded[] = []
   const errors = folders.map((name) => `${name}: folders can't be added. Compress it first, or use "Drive folder".`)
@@ -47,13 +47,13 @@ async function readUploads({ files, folders }: Dropped, onProgress: OnProgress):
     }
   }
   if (errors.length > 0) {
-    // Lo que sí se leyó se agrega igual; el error se muestra después.
+    // What was read is added anyway; the error is shown afterwards.
     throw Object.assign(new Error(errors.join('\n')), { loaded })
   }
   return loaded
 }
 
-/** Ejecuta una carga que puede terminar con parte de lo pedido y un error. */
+/** Runs a load that may end with part of what was requested and an error. */
 async function withPartial(task: () => Promise<Loaded[]>, apply: (loaded: Loaded[]) => void) {
   try {
     apply(await task())
@@ -64,13 +64,13 @@ async function withPartial(task: () => Promise<Loaded[]>, apply: (loaded: Loaded
   }
 }
 
-/** Elegir en Drive y cargar como árbol. */
+/** Choose in Drive and load as a tree. */
 async function fromDrive(drive: Drive, kind: 'folder' | 'archive', onProgress: OnProgress): Promise<Loaded | null> {
   const origin = kind === 'folder' ? await drive.pickFolder() : await drive.pickArchive()
   return origin && { origin, tree: await drive.loadTree(origin, onProgress) }
 }
 
-/** Los tres botones para agregar o reemplazar una fuente. */
+/** The three buttons to add or replace a source. */
 function useSourcePickers(loader: Loader, onLoaded: (loaded: Loaded[]) => void, multiple: boolean) {
   const google = useGoogle()
   const fromUpload = (dropped: Dropped) =>
@@ -97,13 +97,13 @@ function PathRow({ source, index }: { source: PathSource; index: number }) {
   const updatePath = (patch: Partial<AttachmentPath>) =>
     updateSource(source.id, { paths: source.paths.map((p, i) => (i === index ? { ...p, ...patch } : p)) }, true)
   return (
-    // Una ruta = un adjunto: la ruta, y debajo su nombre y si es obligatorio.
+    // One path = one attachment: the path, and below it its name and whether it is required.
     <Stack gap={4} className={classes.path}>
       <Group gap={8} wrap="nowrap">
         <TextInput
           style={{ flex: 1 }}
           ff="monospace"
-          placeholder="Alumnos/{{ rut }}/*.pdf"
+          placeholder="Students/{{ rut }}/*.pdf"
           aria-label={`Path ${index + 1} in ${source.tree.name}`}
           value={path}
           onChange={(event) => updatePath({ path: event.currentTarget.value })}
@@ -138,7 +138,7 @@ function PathRow({ source, index }: { source: PathSource; index: number }) {
           checked={required}
           onChange={(event) => updatePath({ required: event.currentTarget.checked })}
         />
-        {/* Alinea con la ✕ de la fila de arriba. */}
+        {/* Aligns with the ✕ of the row above. */}
         <div style={{ width: 28, flex: 'none' }} />
       </Group>
     </Stack>
@@ -150,7 +150,7 @@ function SourceCard({ source, handle }: { source: PathSource; handle: ReactNode 
   const loader = useLoader()
   const busy = !!loader.progress
   const { origin, tree } = source
-  // Reemplazar o recargar conserva las rutas.
+  // Replacing or reloading keeps the paths.
   const replace = (loaded: Loaded[]) => loaded[0] && updateSource(source.id, { origin: loaded[0].origin, tree: loaded[0].tree })
   const pickers = useSourcePickers(loader, replace, false)
   const reload = () =>
@@ -232,7 +232,7 @@ function SourceCard({ source, handle }: { source: PathSource; handle: ReactNode 
   )
 }
 
-/** Carpetas y archivos comprimidos, cada uno con sus rutas: los adjuntos de cada fila. */
+/** Folders and archives, each with its paths: the attachments of each row. */
 export function PathSources() {
   const sources = useStore((state) => state.sources)
   const loader = useLoader()
@@ -242,7 +242,7 @@ export function PathSources() {
   const pickers = useSourcePickers(loader, add, true)
   const drop = useFileDrop(pickers.fromUpload, busy)
 
-  // Import dinámico dentro de DEV: el ejemplo no queda en el build de producción.
+  // Dynamic import inside DEV: the sample does not end up in the production build.
   const fromSample = () =>
     loader.run('Loading sample…', async () => {
       const { sampleFiles } = await import('../sample/index.ts')
@@ -259,10 +259,10 @@ export function PathSources() {
           <HelpSection title="Paths">
             <HelpRows
               rows={[
-                ['Alumnos/{{ rut }}/informe.pdf', 'One file per row, using template variables'],
-                ['Alumnos/{{ rut }}', 'A folder, as a ZIP'],
-                ['Alumnos/{{ rut }}/*.pdf', '* matches any characters in a name'],
-                ['Alumnos/**/{{ rut }}.pdf', '** matches any number of folders'],
+                ['Students/{{ rut }}/report.pdf', 'One file per row, using template variables'],
+                ['Students/{{ rut }}', 'A folder, as a ZIP'],
+                ['Students/{{ rut }}/*.pdf', '* matches any characters in a name'],
+                ['Students/**/{{ rut }}.pdf', '** matches any number of folders'],
               ]}
             />
             <Text size="xs" c="dimmed" mt={6}>
@@ -286,8 +286,8 @@ export function PathSources() {
         </HelpPopover>
       </Group>
 
-      {/* Tres opciones equivalentes: mismo ancho. Se decide por el ancho de la tarjeta, no de la
-          pantalla, porque en dos columnas la tarjeta es angosta. */}
+      {/* Three equivalent options: same width. It depends on the card's width, not the
+          screen's, because in two columns the card is narrow. */}
       <div style={{ containerType: 'inline-size' }}>
         <SimpleGrid type="container" cols={{ base: 1, '500px': 3 }} spacing="xs">
           <Button
@@ -313,7 +313,7 @@ export function PathSources() {
           </Button>
         </SimpleGrid>
       </div>
-      {/* Solo en desarrollo; aparte, para no mezclarlo con las fuentes reales. */}
+      {/* Development only; separate, so it does not mix with the real sources. */}
       {import.meta.env.DEV && (
         <Button variant="light" fullWidth color="grape" leftSection={<IconFlask size={16} />} disabled={busy} onClick={fromSample}>
           Use sample files

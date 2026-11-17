@@ -1,7 +1,7 @@
 /**
- * Caché acotado por tamaño: al pasar el límite se descarta lo usado hace más tiempo. Sirve para
- * que lo que se repite en todos los correos (un adjunto común, un ZIP igual para todos) se
- * procese una vez, sin guardar todo lo que solo aparece en un correo.
+ * Size-bounded cache: past the limit, the least recently used entries are dropped. It makes
+ * what repeats in every email (a shared attachment, the same ZIP for everyone) get processed
+ * once, without keeping everything that appears in only one email.
  */
 export class LruCache<K, V> {
   private readonly entries = new Map<K, { value: V; size: number }>()
@@ -18,7 +18,7 @@ export class LruCache<K, V> {
   get(key: K): V | undefined {
     const entry = this.entries.get(key)
     if (!entry) return undefined
-    // Al final del Map: el más reciente.
+    // At the end of the Map: the most recent.
     this.entries.delete(key)
     this.entries.set(key, entry)
     return entry.value

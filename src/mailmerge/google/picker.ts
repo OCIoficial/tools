@@ -15,7 +15,7 @@ export interface PickedFile {
   mimeType: string
 }
 
-/** Abre Google Picker con una vista. Devuelve lo elegido, o null si el usuario cancela. */
+/** Opens Google Picker with a view. Returns what was chosen, or null if the user cancels. */
 async function pickMany(
   token: string,
   title: string,
@@ -55,7 +55,7 @@ async function pick(token: string, title: string, view: google.picker.DocsView):
   return (await pickMany(token, title, view))?.[0] ?? null
 }
 
-// Las vistas usan google.picker, que existe recién después de cargar el script.
+// The views use google.picker, which only exists after the script loads.
 export async function pickSpreadsheet(token: string) {
   await loadPicker()
   const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setMode(google.picker.DocsViewMode.LIST)
@@ -89,7 +89,7 @@ export async function pickArchive(token: string) {
   return pick(token, 'Choose a ZIP or TAR.GZ file', view)
 }
 
-/** Cualquier archivo (no carpetas), varios a la vez. */
+/** Any file (not folders), several at once. */
 export async function pickFiles(token: string) {
   await loadPicker()
   const view = new google.picker.DocsView(google.picker.ViewId.DOCS)

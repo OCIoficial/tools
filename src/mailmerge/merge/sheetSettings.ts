@@ -1,6 +1,6 @@
 import { DEFAULT_NORMALIZATION, type Normalization } from './normalize.ts'
 
-/** Configuración que depende de los datos de una hoja, y por eso se guarda por hoja. */
+/** Settings that depend on a sheet's data, and are therefore saved per sheet. */
 export interface SheetSettings {
   hasHeader: boolean
   normalization: Normalization
@@ -11,7 +11,7 @@ export const DEFAULT_SHEET_SETTINGS: SheetSettings = {
   normalization: DEFAULT_NORMALIZATION,
 }
 
-/** Identifica una hoja: id del spreadsheet + nombre de la hoja. */
+/** Identifies a sheet: spreadsheet id + sheet name. */
 export function sheetKey(spreadsheetId: string, sheet: string): string {
   return `${spreadsheetId}::${sheet}`
 }

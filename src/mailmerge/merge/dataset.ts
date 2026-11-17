@@ -1,7 +1,7 @@
 export interface Column {
-  /** Encabezado tal como aparece en la planilla, o la letra de la columna si no hay encabezado. */
+  /** Header as it appears in the spreadsheet, or the column letter if there is no header. */
   header: string
-  /** Nombre de la variable en el template. */
+  /** Name of the variable in the template. */
   key: string
 }
 
@@ -10,11 +10,11 @@ export type Row = Record<string, string>
 export interface Dataset {
   columns: Column[]
   rows: Row[]
-  /** Hoja de origen (ver sheetKey), para su configuración guardada. */
+  /** Source sheet (see sheetKey), for its saved settings. */
   sheetKey?: string
 }
 
-/** "Correo Electrónico" → "correo_electronico" */
+/** "Café Owner" → "cafe_owner" */
 export function toVariableName(header: string): string {
   const name = header
     .normalize('NFD')
@@ -26,7 +26,7 @@ export function toVariableName(header: string): string {
   return /^[0-9]/.test(name) ? `_${name}` : name
 }
 
-/** 0 → "A", 25 → "Z", 26 → "AA", como en la planilla. */
+/** 0 → "A", 25 → "Z", 26 → "AA", as in the spreadsheet. */
 export function columnLetter(index: number): string {
   let letter = ''
   for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
@@ -36,20 +36,20 @@ export function columnLetter(index: number): string {
 }
 
 /**
- * Convierte los valores de una hoja en columnas y filas. Si `hasHeader`, la primera fila
- * da los nombres; si no, las columnas se llaman como en la planilla (A, B, C...).
+ * Turns the values of a sheet into columns and rows. If `hasHeader`, the first row
+ * gives the names; if not, the columns are named as in the spreadsheet (A, B, C...).
  */
 export function toDataset(values: string[][], hasHeader: boolean): Dataset {
   const headerRow = hasHeader ? (values[0] ?? []) : []
   const dataRows = hasHeader ? values.slice(1) : values
-  // La API omite las celdas vacías al final de cada fila, así que las filas tienen largos distintos.
+  // The API omits the empty cells at the end of each row, so rows have different lengths.
   const width = Math.max(0, ...values.map((cells) => cells.length))
 
   const used = new Set<string>()
   const columns: Column[] = []
   for (let index = 0; index < width; index++) {
     const name = headerRow[index]?.trim()
-    // Sin encabezado, la columna se llama por su letra: {{ A }}, {{ B }}...
+    // Without a header, the column is named by its letter: {{ A }}, {{ B }}...
     const base = name ? toVariableName(name) : columnLetter(index)
     let key = base
     for (let n = 2; used.has(key); n++) key = `${base}_${n}`

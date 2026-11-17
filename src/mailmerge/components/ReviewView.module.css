@@ -1,4 +1,4 @@
-/* --- Lista, al estilo bandeja de entrada --------------------------------- */
+/* --- List, inbox style --------------------------------------------------- */
 
 .list {
   display: flex;
@@ -23,7 +23,7 @@
   gap: 2px;
   padding-left: 7px;
   border-bottom: 1px solid var(--mantine-color-default-border);
-  /* Marca de selección a la izquierda; transparente si no está seleccionado. */
+  /* Selection mark on the left; transparent when not selected. */
   border-left: 3px solid transparent;
 }
 
@@ -40,7 +40,7 @@
   background: var(--mantine-primary-color-light);
 }
 
-/* Excluida: el contenido atenuado, la casilla no, para que se vea cómo volver a incluirla. */
+/* Excluded: the content dimmed, not the checkbox, so it is clear how to include it again. */
 .item[data-excluded] .itemButton {
   opacity: 0.45;
 }
@@ -105,7 +105,7 @@
   font-style: italic;
 }
 
-/* Advertencia: ícono + número en naranja, nunca solo color (ver Notice). */
+/* Warning: icon + number in orange, never color alone (see Notice). */
 .warning {
   display: inline-flex;
   align-items: center;
@@ -148,7 +148,7 @@
   gap: 2px;
 }
 
-/* --- Correo abierto ------------------------------------------------------ */
+/* --- Open email ---------------------------------------------------------- */
 
 .subject {
   margin: 0;
@@ -229,7 +229,7 @@
   font-size: 12px;
 }
 
-/* --- El cuerpo como una hoja: el correo, no la interfaz ------------------ */
+/* --- The body as a sheet of paper: the email, not the UI ----------------- */
 
 .paper {
   border: 1px solid var(--mantine-color-default-border);
@@ -250,7 +250,7 @@
   border: 0;
 }
 
-/* Estado de envío: ícono + color (el detalle explica el motivo de una falla). */
+/* Sending status: icon + color (the detail explains why it failed). */
 .sent {
   color: var(--mantine-color-green-text);
   font-weight: 600;
@@ -261,7 +261,7 @@
   font-weight: 700;
 }
 
-/* Sin confirmar: pudo haber salido; naranja como las advertencias, no rojo como un error. */
+/* Unconfirmed: it may have gone out; orange like the warnings, not red like an error. */
 .unconfirmed {
   color: var(--mantine-color-orange-text);
   font-weight: 700;

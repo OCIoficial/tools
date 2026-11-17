@@ -5,11 +5,11 @@ import { isSending, trackLoad, useSending } from '../store.ts'
 export interface Loader {
   progress: LoadProgress | null
   error: string | null
-  /** Cambia con cada carga: reinicia los tiempos del indicador. */
+  /** Changes with each load: resets the indicator timers. */
   loadId: number
-  /** Ejecuta una carga con su avance; un error queda en `error`. */
+  /** Runs a load with its progress; an error ends up in `error`. */
   run: (message: string, task: (onProgress: (progress: LoadProgress) => void) => Promise<void>) => Promise<void>
-  /** Muestra un error sin cargar nada (archivos rechazados antes de leerlos). */
+  /** Shows an error without loading anything (files rejected before reading them). */
   fail: (error: string | null) => void
 }
 
@@ -19,7 +19,7 @@ export function useLoader(): Loader {
   const [loadId, setLoadId] = useState(0)
 
   async function run(message: string, task: (onProgress: (progress: LoadProgress) => void) => Promise<void>) {
-    // Mientras se envía no se carga nada: cambiaría los correos que muestra Review.
+    // While sending nothing is loaded: it would change the emails Review shows.
     if (isSending()) return
     setProgress({ message })
     setError(null)
@@ -36,21 +36,21 @@ export function useLoader(): Loader {
   return { progress, error, loadId, run, fail: setError }
 }
 
-/** Lo soltado sobre una zona: los archivos, y los nombres de las carpetas (que no se pueden leer). */
+/** What was dropped on a zone: the files, and the names of the folders (which cannot be read). */
 export interface Dropped {
   files: File[]
   folders: string[]
 }
 
 /**
- * Soltar archivos sobre una zona. `active` mientras se arrastran archivos encima. Solo reacciona
- * a archivos del sistema, no a lo que se arrastra dentro de la página.
+ * Dropping files on a zone. `active` while files are dragged over it. It only reacts
+ * to files from the system, not to things dragged within the page.
  */
 export function useFileDrop(onDrop: (dropped: Dropped) => void, disabled = false) {
   const [active, setActive] = useState(false)
   const sending = useSending()
   disabled ||= sending
-  // dragenter/dragleave se disparan también al pasar sobre los hijos.
+  // dragenter/dragleave also fire when passing over the children.
   const depth = useRef(0)
   const hasFiles = (event: DragEvent) => !disabled && event.dataTransfer.types.includes('Files')
 

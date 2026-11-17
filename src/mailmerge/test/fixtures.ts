@@ -16,47 +16,47 @@ import {
   useStore,
 } from '../store.ts'
 
-/** Qué adjunta la ruta de una fila. */
+/** What a row's path attaches. */
 export type RowAttachment =
-  /** Su propio archivo, "rows/r<i>.txt". */
+  /** Its own file, "rows/r<i>.txt". */
   | 'own'
-  /** Su carpeta "folders/f<i>" como ZIP. */
+  /** Its folder "folders/f<i>" as a ZIP. */
   | 'folder'
-  /** Lo que calce con "folders/f<i>/*", también como ZIP. */
+  /** Whatever matches "folders/f<i>/*", also as a ZIP. */
   | 'glob'
-  /** Una ruta que no existe (opcional: el correo sale sin ese adjunto). */
+  /** A path that does not exist (optional: the email goes out without that attachment). */
   | 'missing'
 
 export interface RowSpec {
   name: string
   subject: string
-  /** Texto del cuerpo. */
+  /** Body text. */
   note: string
   attachment: RowAttachment
-  /** Nombre explícito del adjunto; vacío = automático. */
+  /** Explicit attachment name; empty = automatic. */
   attachmentName: string
-  /** Agrega un Cc. */
+  /** Adds a Cc. */
   cc: boolean
 }
 
-/** Dirección única por fila: identifica a qué fila corresponde cada mensaje enviado. */
+/** Unique address per row: identifies which row each sent message belongs to. */
 export const addressFor = (row: number) => `r${row}@test.example`
 
-/** Archivo común a todos los correos. */
+/** File shared by every email. */
 export const SHARED_BYTES = new TextEncoder().encode('%PDF-1.4 shared file for every email')
 
 const bytes = (text: string) => new TextEncoder().encode(text)
 
 /**
- * Árbol con un archivo y una carpeta por fila. Las carpetas tienen las mismas rutas y difieren
- * solo en el contenido de un archivo, así un ZIP que saliera del caché de otra fila se notaría.
+ * Tree with one file and one folder per row. The folders have the same paths and differ
+ * only in the contents of one file, so a ZIP coming from another row's cache would show.
  */
 export function rowsTree(count: number): AttachmentTree {
   const entries: TreeEntry[] = []
   for (let i = 0; i < count; i++) {
     entries.push({ path: `rows/r${i}.txt`, data: bytes(`own file of row ${i}`) })
     entries.push({ path: `folders/f${i}/same.txt`, data: bytes('identical in every folder') })
-    // Misma ruta en todas las carpetas, distinto contenido.
+    // Same path in every folder, different contents.
     entries.push({ path: `folders/f${i}/sub/differs.txt`, data: bytes(`content of folder ${i}`) })
   }
   return buildTree('files', entries)
@@ -76,8 +76,8 @@ function pathFor(row: number, attachment: RowAttachment): string {
 }
 
 /**
- * Deja el store como si el usuario hubiera cargado esta planilla, escrito el template y
- * agregado los adjuntos, con las filas `excluded` sin incluir. Reinicia el estado de envío.
+ * Leaves the store as if the user had loaded this spreadsheet, written the template and
+ * added the attachments, with the `excluded` rows not included. Resets the sending state.
  */
 export function loadScenario(rows: RowSpec[], excluded: Iterable<number> = []): void {
   useStore.setState({ progress: null, loads: 0, stopReason: null, confirming: false })
@@ -115,7 +115,7 @@ export function loadScenario(rows: RowSpec[], excluded: Iterable<number> = []): 
   flushEmails()
 }
 
-/** Un mensaje tal como lo ve quien lo recibe: decodificado por un parser independiente. */
+/** A message as its recipient sees it: decoded by an independent parser. */
 export interface Received {
   raw: Uint8Array
   parsed: Email
@@ -125,7 +125,7 @@ export async function parseMessage(raw: Uint8Array): Promise<Received> {
   return { raw, parsed: await PostalMime.parse(raw, { attachmentEncoding: 'arraybuffer' }) }
 }
 
-/** Fila a la que va un mensaje, por su dirección única. */
+/** Row a message goes to, by its unique address. */
 export function rowOf({ parsed }: Received): number {
   const address = mailboxes(parsed.to)[0]?.address ?? ''
   const match = /^r(\d+)@test\.example$/.exec(address)
@@ -139,7 +139,7 @@ function mailboxes(addresses: Address[] | undefined): { name: string; address: s
   )
 }
 
-/** "Nombre <a@b>" → { name, address }, como lo arma el remitente. */
+/** "Name <a@b>" → { name, address }, as the sender builds it. */
 function expectedMailboxes(value: string): { name: string; address: string }[] {
   return splitAddresses(value).map((entry) => {
     const match = entry.match(/^(.*?)\s*<([^>]+)>\s*$/)
@@ -149,7 +149,7 @@ function expectedMailboxes(value: string): { name: string; address: string }[] {
   })
 }
 
-/** Lo que debe recibir el destinatario de un correo de Review, en la forma que entrega el parser. */
+/** What the recipient of a Review email should receive, in the form the parser returns. */
 export interface ExpectedMessage {
   to: { name: string; address: string }[]
   cc: { name: string; address: string }[]
@@ -160,13 +160,13 @@ export interface ExpectedMessage {
 
 const hex = (data: Uint8Array) => Array.from(data, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
-/** Un adjunto descrito por su contenido: los bytes, o para un ZIP, cada ruta con sus bytes. */
+/** An attachment described by its contents: the bytes, or for a ZIP, each path with its bytes. */
 function describeContent(mimeType: string, data: Uint8Array): Record<string, string> | string {
   if (mimeType !== 'application/zip') return hex(data)
   return Object.fromEntries(Object.entries(unzipSync(data)).map(([path, content]) => [path, hex(content)]))
 }
 
-/** Lo que muestra Review para un adjunto: el archivo, o las rutas que lista el chip del ZIP. */
+/** What Review shows for an attachment: the file, or the paths listed by the ZIP chip. */
 function describeResolved(attachment: ResolvedAttachment): ExpectedMessage['attachments'][number] {
   return attachment.kind === 'file'
     ? { filename: attachment.filename, mimeType: attachment.file.mimeType, files: hex(attachment.file.data) }
@@ -177,7 +177,7 @@ function describeResolved(attachment: ResolvedAttachment): ExpectedMessage['atta
       }
 }
 
-/** Lo que debe recibir el destinatario, a partir del correo tal como está en Review. */
+/** What the recipient should receive, based on the email as it is in Review. */
 export function expectedMessage(email: RenderedEmail): ExpectedMessage {
   return {
     to: expectedMailboxes(email.to),
@@ -188,7 +188,7 @@ export function expectedMessage(email: RenderedEmail): ExpectedMessage {
   }
 }
 
-/** El HTML enviado va dentro de un documento completo; se compara solo el cuerpo. */
+/** The sent HTML goes inside a complete document; only the body is compared. */
 const BODY = /^<!doctype html><html><head><meta charset="utf-8"><\/head><body>([\s\S]*)<\/body><\/html>$/
 
 export function describeReceived({ parsed }: Received): ExpectedMessage {

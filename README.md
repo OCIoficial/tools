@@ -5,7 +5,7 @@ browser (Vite + React + TypeScript + Mantine) and are published on GitHub Pages:
 
 | App | URL | What it does |
 |---|---|---|
-| [Mail Merge](docs/google-cloud-setup.md) | `/tools/mailmerge/` | Send personalized emails with attachments from a spreadsheet, through Gmail. |
+| [Mail Merge](src/mailmerge) | `/tools/mailmerge/` | Send personalized emails with attachments from a spreadsheet, through Gmail. |
 | [Credentials](src/credentials/README.md) | `/tools/credentials/` | Generate printable PDFs with contest login credentials from a CSV. |
 
 The older command-line tools (CMS scripts, the credentials TUI, …) are kept in [`legacy/`](legacy).

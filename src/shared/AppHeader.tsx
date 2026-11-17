@@ -87,7 +87,7 @@ function GoogleLogo() {
   )
 }
 
-/** Ítems de tema para un Menu: en el teléfono el selector no cabe en el encabezado. */
+/** Theme items for a Menu: on a phone the selector does not fit in the header. */
 function ThemeMenuItems() {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
   return (

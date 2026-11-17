@@ -1,6 +1,6 @@
 import type { Dataset, Row } from './dataset.ts'
 
-/** `id` identifica el paso al reordenarlo. */
+/** `id` identifies the step when reordering it. */
 export type Step = { id: string } & (
   | { type: 'trim' }
   | { type: 'collapse' }
@@ -40,7 +40,7 @@ export interface GlobalNormalization {
 
 export interface Normalization {
   global: GlobalNormalization
-  /** Pasos por columna, por nombre de variable. */
+  /** Steps per column, by variable name. */
   columns: Record<string, Step[]>
 }
 
@@ -56,7 +56,7 @@ export function titlecase(value: unknown): string {
     .replace(/(^|[\s\-'’])(\p{L})/gu, (_, before: string, letter: string) => before + letter.toLocaleUpperCase())
 }
 
-/** "Núñez Pérez" → "Núñez Perez": quita tildes y diéresis, pero conserva la ñ. */
+/** "Núñez Pérez" → "Núñez Perez": removes accents and diaereses, but keeps the ñ. */
 function removeAccents(value: string): string {
   return value
     .normalize('NFD')
@@ -64,7 +64,7 @@ function removeAccents(value: string): string {
     .normalize('NFC')
 }
 
-/** Devuelve un error si la expresión regular no es válida. */
+/** Returns an error if the regular expression is not valid. */
 export function replacePatternError(step: Extract<Step, { type: 'replace' }>): string | null {
   if (!step.regex) return null
   try {
@@ -75,7 +75,7 @@ export function replacePatternError(step: Extract<Step, { type: 'replace' }>): s
   }
 }
 
-/** Varios espacios o tabs seguidos → uno. Los saltos de línea se conservan. */
+/** Several spaces or tabs in a row → one. Line breaks are kept. */
 function collapseSpaces(value: string): string {
   return value.replace(/[^\S\r\n]{2,}/g, ' ')
 }
@@ -105,7 +105,7 @@ export function applyStep(value: string, step: Step): string {
 function applyGlobal(value: string, global: GlobalNormalization): string {
   let result = value
   if (global.invisible) {
-    // Espacios duros → espacio normal; caracteres de ancho cero y BOM → nada.
+    // Non-breaking spaces → normal space; zero-width characters and BOM → nothing.
     result = result.replace(/[   ]/g, ' ').replace(/[​-‍⁠﻿]/g, '')
   }
   if (global.collapse) result = collapseSpaces(result)
@@ -118,7 +118,7 @@ export function normalizeValue(value: string, global: GlobalNormalization, steps
 }
 
 export interface NormalizedDataset extends Dataset {
-  /** Filas sin transformar, en el mismo orden. */
+  /** Rows without transformations, in the same order. */
   original: Row[]
   changedCells: number
 }

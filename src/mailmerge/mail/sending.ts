@@ -16,7 +16,7 @@ import { buildMessage, type MessageFields } from './mime.ts'
 
 export const plural = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`)
 
-/** Pausa mínima entre envíos: la cuota de la Gmail API permite unos 2,5 correos por segundo. */
+/** Minimum pause between sends: the Gmail API quota allows about 2.5 emails per second. */
 const MIN_INTERVAL = 400
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -25,31 +25,31 @@ export type SendMessage = (message: Uint8Array) => Promise<void>
 let stopRequested = false
 
 async function deliver(sendMessage: SendMessage, fields: MessageFields, email: RenderedEmail) {
-  // Los archivos ya están en el árbol: solo el envío necesita la sesión de Google.
+  // The files are already in the tree: only sending needs the Google session.
   const message = buildMessage(fields, await Promise.all(email.attachments.map(buildAttachment)))
   await sendMessage(message)
 }
 
-/** Detiene el envío en curso antes del siguiente correo. */
+/** Stops the sending in progress before the next email. */
 export function stopSending() {
   stopRequested = true
 }
 
-/** Pendiente: ni enviado ni sin confirmar (un no confirmado pudo haber salido; se reintenta aparte). */
+/** Pending: neither sent nor unconfirmed (an unconfirmed one may have gone out; it is retried separately). */
 const isPending = (status: SendStatus | undefined) => status?.state !== 'sent' && status?.state !== 'unconfirmed'
 
 /**
- * Envía, de a uno y en el orden de Review, los correos incluidos pendientes, o con mode
- * "unconfirmed" solo los no confirmados. Sigue ante errores de un correo.
+ * Sends, one at a time and in Review order, the pending included emails, or with mode
+ * "unconfirmed" only the unconfirmed ones. Keeps going after an error in one email.
  *
- * Mientras dura, el store no deja cambiar los correos ni cuáles se envían (ver isSending): la
- * lista que se toma al empezar sigue siendo la que muestra Review.
+ * While it runs, the store does not allow changing the emails or which ones are sent (see
+ * isSending): the list taken at the start is still the one Review shows.
  */
 export async function sendAll(sendMessage: SendMessage, mode: SendMode, { minInterval = MIN_INTERVAL } = {}) {
-  // Si quedó texto sin procesar (se acaba de escribir), los correos se regeneran antes de enviar.
+  // If there is unprocessed text (just typed), the emails are regenerated before sending.
   flushEmails()
   const state = useStore.getState()
-  // Una carga en curso cambiaría los correos a mitad del envío; la interfaz no deja llegar aquí.
+  // A load in progress would change the emails in the middle of sending; the UI does not get here.
   if (isSending(state) || state.loads > 0) return
   const { emails, statuses } = state
   const pending = emails.filter((email) =>
@@ -57,7 +57,7 @@ export async function sendAll(sendMessage: SendMessage, mode: SendMode, { minInt
   )
   if (pending.length === 0) return
   stopRequested = false
-  // En la misma tarea que la lista: desde aquí el store queda bloqueado.
+  // In the same task as the list: from here on the store is locked.
   setSendState({ stopReason: null, progress: { done: 0, total: pending.length } })
 
   for (const [i, email] of pending.entries()) {
@@ -73,13 +73,13 @@ export async function sendAll(sendMessage: SendMessage, mode: SendMode, { minInt
     } catch (e) {
       const error = (e as Error).message
       if (e instanceof UnconfirmedSendError) {
-        // Si se cortó la conexión, los siguientes fallarían igual: se detiene aquí.
+        // If the connection dropped, the next ones would fail too: stop here.
         setStatus(email.index, { state: 'unconfirmed', error })
         setSendState({ stopReason: 'The connection was lost.' })
         break
       }
       setStatus(email.index, { state: 'failed', error })
-      // Sin sesión o sin cuota no tiene sentido seguir: el resto queda pendiente.
+      // Without a session or quota there is no point in continuing: the rest stays pending.
       if (e instanceof AuthError || e instanceof SendLimitError) {
         setSendState({ stopReason: error })
         break
@@ -91,7 +91,7 @@ export async function sendAll(sendMessage: SendMessage, mode: SendMode, { minInt
   setSendState({ progress: null })
 }
 
-/** Envía el primer correo a una dirección de prueba: sin Cc ni Bcc, y con "[Test]" en el asunto. */
+/** Sends the first email to a test address: without Cc or Bcc, and with "[Test]" in the subject. */
 async function sendTest(sendMessage: SendMessage, address: string) {
   flushEmails()
   const email = useStore.getState().emails[0]
@@ -137,8 +137,8 @@ export function warnWhileSending() {
 }
 
 /**
- * Estado y acciones de envío para la tarjeta Send, la barra fija del teléfono y el diálogo de
- * confirmación. Se re-dibujan cuando cambian los correos o el envío, no al escribir.
+ * Sending state and actions for the Send card, the phone's fixed bar and the confirmation
+ * dialog. They re-render when the emails or the sending change, not while typing.
  */
 export function useSendControls() {
   const google = useGoogle()
@@ -156,7 +156,7 @@ export function useSendControls() {
     const failed = emails.filter((email) => statuses.get(email.index)?.state === 'failed')
     const pending = emails.filter((email) => isPending(statuses.get(email.index)))
     const unconfirmed = emails.filter((email) => statuses.get(email.index)?.state === 'unconfirmed')
-    // La prueba ignora los destinatarios de la fila, así que solo importan los errores de render.
+    // The test ignores the row's recipients, so only render errors matter.
     const firstRenders = emails[0]?.problems.every((problem) =>
       (ADDRESS_FIELDS as ProblemField[]).includes(problem.field),
     )
@@ -166,7 +166,7 @@ export function useSendControls() {
       pending,
       unconfirmed,
       firstRenders: Boolean(firstRenders),
-      // Solo bloquean los problemas de los correos que faltan por enviar.
+      // Only problems in the emails still to be sent block.
       blocking: pending.filter((email) => email.problems.length > 0).length,
       attachmentCount: pending.reduce((sum, email) => sum + email.attachments.length, 0),
     }

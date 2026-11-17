@@ -46,7 +46,7 @@ function FileIcon() {
 }
 
 const INDENT = 16
-/** Espacio a la izquierda de cada fila, antes de la sangría. */
+/** Space to the left of each row, before the indentation. */
 const PADDING = 4
 
 interface NodesProps {
@@ -56,9 +56,9 @@ interface NodesProps {
   onToggle: (id: string) => void
 }
 
-/** Lista de un nivel; las carpetas abiertas muestran su contenido debajo. Sin navegación con teclado. */
+/** One-level list; open folders show their contents below. No keyboard navigation. */
 function Nodes({ nodes, level, expanded, onToggle }: NodesProps) {
-  // La guía queda bajo el chevron de la carpeta padre.
+  // The guide sits under the parent folder's chevron.
   const style = { '--guide-x': `${PADDING + (level - 1) * INDENT + 8}px` } as CSSProperties
   return (
     <ul className={classes.list} data-guide={level > 0 || undefined} style={style}>
@@ -96,17 +96,17 @@ function Nodes({ nodes, level, expanded, onToggle }: NodesProps) {
 
 interface Props {
   tree: AttachmentTree
-  /** Antes del nombre (la manija para reordenar). */
+  /** Before the name (the handle to reorder). */
   leading?: ReactNode
-  /** Botones a la derecha del encabezado. */
+  /** Buttons on the right of the header. */
   actions?: ReactNode
-  /** Debajo del árbol, en el mismo recuadro (las rutas de la fuente). */
+  /** Below the tree, in the same box (the source's paths). */
   children?: ReactNode
 }
 
-/** Explorador del árbol cargado. Montarlo con `key` por árbol para reiniciar las carpetas abiertas. */
+/** Explorer of the loaded tree. Mount it with a `key` per tree to reset the open folders. */
 export function FileTree({ tree, leading, actions, children }: Props) {
-  // Las carpetas de primer nivel empiezan abiertas.
+  // Top-level folders start open.
   const [expanded, setExpanded] = useState(
     () => new Set(tree.root.children.filter((node) => node.kind === 'dir').map((node) => node.id)),
   )
@@ -130,7 +130,7 @@ export function FileTree({ tree, leading, actions, children }: Props) {
         {actions}
       </div>
 
-      {/* offsetScrollbars reserva espacio para la barra, para que no tape los tamaños. */}
+      {/* offsetScrollbars reserves space for the scrollbar, so it does not cover the sizes. */}
       <ScrollArea.Autosize mah={280} type="auto" offsetScrollbars="present" className={classes.body}>
         {tree.root.children.length === 0 ? (
           <Text size="sm" c="dimmed" p="xs">

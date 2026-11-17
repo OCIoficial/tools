@@ -2,19 +2,19 @@ import { zip } from 'fflate'
 import { LruCache } from './cache.ts'
 import { fileNode, filesIn, type AttachmentTree, type FileNode, type PathMatch } from './tree.ts'
 
-/** Límite de Gmail para el total de adjuntos de un correo. */
+/** Gmail's limit for the total size of an email's attachments. */
 export const MAX_ATTACHMENTS_SIZE = 25 * 1024 * 1024
 
-/** Un archivo dentro del ZIP, con su ruta dentro del ZIP. */
+/** A file inside the ZIP, with its path inside the ZIP. */
 export interface ZipEntry {
   path: string
   file: FileNode
 }
 
-/** Un adjunto por ruta: un archivo tal cual, o un ZIP con todo lo que calzó. */
+/** One attachment per path: a file as is, or a ZIP with everything that matched. */
 export type ResolvedAttachment =
   | { kind: 'file'; filename: string; size: number; file: FileNode }
-  /** size es la suma sin comprimir (cota superior). */
+  /** size is the uncompressed sum (upper bound). */
   | { kind: 'zip'; filename: string; size: number; entries: ZipEntry[] }
 
 function zipOf(filename: string, entries: ZipEntry[]): ResolvedAttachment {
@@ -23,14 +23,14 @@ function zipOf(filename: string, entries: ZipEntry[]): ResolvedAttachment {
 
 const ARCHIVE_EXTENSION = /\.(zip|tar\.gz|tgz|tar|gz)$/i
 
-/** Nombre de lo cargado, como ZIP: "documentos.zip" (archivo subido) o "Documentos.zip" (carpeta de Drive). */
+/** Name of what was loaded, as a ZIP: "documents.zip" (uploaded file) or "Documents.zip" (Drive folder). */
 export function treeZipName(tree: AttachmentTree): string {
   return `${tree.name.replace(ARCHIVE_EXTENSION, '')}.zip`
 }
 
 /**
- * Lo que calzó con una ruta, como un solo adjunto: un archivo tal cual, una carpeta como
- * "carpeta.zip", o varios en un ZIP que conserva la jerarquía desde la carpeta que comparten.
+ * What matched a path, as a single attachment: a file as is, a folder as "folder.zip",
+ * or several in a ZIP that keeps the hierarchy from the folder they share.
  */
 export function attachmentFrom(tree: AttachmentTree, matches: PathMatch[]): ResolvedAttachment {
   if (matches.length === 1) {
@@ -40,13 +40,13 @@ export function attachmentFrom(tree: AttachmentTree, matches: PathMatch[]): Reso
       : zipOf(`${node.name}.zip`, filesIn(node))
   }
 
-  // Cada archivo con su ruta desde la raíz; el último segmento es el nombre con que se adjunta.
+  // Each file with its path from the root; the last segment is the name it is attached with.
   const files = matches.flatMap(({ node, path }) =>
     node.kind === 'file'
       ? [{ segments: [...path.slice(0, -1), node.filename], file: node }]
       : filesIn(node).map((entry) => ({ segments: [...path, ...entry.path.split('/')], file: entry.file })),
   )
-  // Carpeta común: el prefijo de carpetas que comparten todos (sin el nombre del archivo).
+  // Common folder: the prefix of folders they all share (without the file name).
   let common = files[0]?.segments.slice(0, -1) ?? []
   for (const { segments } of files) {
     let i = 0
@@ -60,11 +60,11 @@ export function attachmentFrom(tree: AttachmentTree, matches: PathMatch[]): Reso
 const extensionOf = (filename: string) => /\.[^./]+$/.exec(filename)?.[0] ?? ''
 
 /**
- * Nombre explícito del adjunto (ya con las variables reemplazadas). Sin extensión, se agrega la
- * que corresponde: la del archivo, o ".zip".
+ * Explicit attachment name (with the variables already replaced). Without an extension, the
+ * right one is added: the file's, or ".zip".
  */
 export function withName(attachment: ResolvedAttachment, name: string): ResolvedAttachment {
-  // Una barra en el nombre se leería como carpeta en algunos clientes de correo.
+  // A slash in the name would be read as a folder by some email clients.
   const clean = name.trim().replace(/[\\/]/g, '-')
   if (!clean) return attachment
   const extension = attachment.kind === 'file' ? extensionOf(attachment.filename) : '.zip'
@@ -84,8 +84,8 @@ export interface AttachmentContent {
 }
 
 /**
- * ZIPs ya comprimidos, por contenido (rutas y archivos). Un ZIP que se repite en todos los correos
- * se comprime una vez; los que son de un solo correo van saliendo del caché.
+ * Already compressed ZIPs, by content (paths and files). A ZIP that repeats in every email
+ * is compressed once; the ones for a single email get evicted from the cache.
  */
 const zipCache = new LruCache<string, Uint8Array>(64 * 1024 * 1024, (data) => data.length)
 
@@ -98,7 +98,7 @@ async function zipEntries(entries: ZipEntry[]): Promise<Uint8Array> {
   return data
 }
 
-/** Arma el adjunto con el contenido ya cargado en el árbol; un ZIP se comprime aquí. */
+/** Builds the attachment with the contents already loaded in the tree; a ZIP is compressed here. */
 export async function buildAttachment(attachment: ResolvedAttachment): Promise<AttachmentContent> {
   if (attachment.kind === 'file') {
     return { filename: attachment.filename, mimeType: attachment.file.mimeType, data: attachment.file.data }
@@ -106,7 +106,7 @@ export async function buildAttachment(attachment: ResolvedAttachment): Promise<A
   return { filename: attachment.filename, mimeType: 'application/zip', data: await zipEntries(attachment.entries) }
 }
 
-/** Todo un árbol como un solo archivo ZIP (una carpeta de Drive adjunta a todos los correos). */
+/** A whole tree as a single ZIP file (a Drive folder attached to every email). */
 export async function zipTree(tree: AttachmentTree): Promise<FileNode> {
   const entries = filesIn(tree.root)
   if (entries.length === 0) throw new Error(`"${tree.name}" has no files.`)

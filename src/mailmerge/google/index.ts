@@ -1,6 +1,6 @@
 /**
- * Única entrada a Google desde el resto de la app. Solo los archivos de src/google llaman a la
- * red o usan los scripts de Google; el lint (.oxlintrc.json) lo exige.
+ * The only entry point to Google from the rest of the app. Only files inside a `google/` folder
+ * call the network or use Google's scripts; the linter (.oxlintrc.json) enforces it.
  */
 export { AuthError } from './api.ts'
 export { SendLimitError, UnconfirmedSendError } from './gmail.ts'

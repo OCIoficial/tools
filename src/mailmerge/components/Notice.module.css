@@ -4,7 +4,7 @@
   padding: 10px 12px;
   border-left: 3px solid var(--tone);
   border-radius: var(--mantine-radius-sm);
-  /* Fondo apenas teñido: el borde y el ícono llevan la señal, no un bloque de color. */
+  /* Barely tinted background: the border and the icon carry the signal, not a block of color. */
   background: color-mix(in srgb, var(--tone) 8%, transparent);
   font-size: 13px;
   line-height: 1.45;

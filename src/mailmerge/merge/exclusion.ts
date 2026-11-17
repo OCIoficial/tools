@@ -1,4 +1,4 @@
-/** Incluye o excluye varias filas a la vez. Devuelve un conjunto nuevo. */
+/** Includes or excludes several rows at once. Returns a new set. */
 export function setIncluded(excluded: Set<number>, indices: number[], include: boolean): Set<number> {
   const next = new Set(excluded)
   for (const index of indices) {
@@ -9,8 +9,8 @@ export function setIncluded(excluded: Set<number>, indices: number[], include: b
 }
 
 /**
- * Filas entre `from` y `to` (ambas incluidas) en el orden en que se muestran, para Shift+clic.
- * En Review la lista puede estar filtrada, así que el rango sigue lo visible y no los números de fila.
+ * Rows between `from` and `to` (both included) in the order they are shown, for Shift+click.
+ * In Review the list may be filtered, so the range follows what is visible and not the row numbers.
  */
 export function rangeBetween(order: number[], from: number | null, to: number): number[] {
   const end = order.indexOf(to)

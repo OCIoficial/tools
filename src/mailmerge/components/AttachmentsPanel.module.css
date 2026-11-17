@@ -1,10 +1,10 @@
-/* Cada ruta (con su nombre y "Required") separada de la siguiente. */
+/* Each path (with its name and "Required") separated from the next one. */
 .path + .path {
   padding-top: 8px;
   border-top: 1px dashed var(--mantine-color-default-border);
 }
 
-/* Zona donde se pueden soltar archivos; se marca mientras se arrastran encima. */
+/* Zone where files can be dropped; highlighted while they are dragged over it. */
 .dropZone {
   margin: -6px;
   padding: 6px;
@@ -24,7 +24,7 @@
   }
 }
 
-/* Un adjunto común: archivo arriba, nombre debajo. */
+/* A shared attachment: file on top, name below. */
 .sharedRow {
   padding: 4px 6px 6px 2px;
   border: 1px solid var(--mantine-color-default-border);
@@ -37,7 +37,7 @@
   color: var(--mantine-color-dimmed);
 }
 
-/* Alinea con el nombre del archivo (manija + ícono + separaciones). */
+/* Aligns with the file name (handle + icon + gaps). */
 .indented {
   margin-left: 48px;
   margin-right: 34px;

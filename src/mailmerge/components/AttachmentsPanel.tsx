@@ -3,8 +3,8 @@ import { PathSources } from './PathSources.tsx'
 import { SharedAttachments } from './SharedAttachments.tsx'
 
 /**
- * Dos secciones separadas, sin ambigüedad sobre qué hace un archivo: los que van en todos los
- * correos, y las carpetas o archivos comprimidos de los que cada fila toma los suyos con rutas.
+ * Two separate sections, with no ambiguity about what a file does: the ones that go in every
+ * email, and the folders or archives from which each row takes its own with paths.
  */
 export function AttachmentsPanel() {
   return (

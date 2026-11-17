@@ -9,15 +9,15 @@ interface Props {
   normalization: Normalization
   showOriginal: boolean
   onColumnStepsChange: (key: string, steps: Step[]) => void
-  /** Filas que no se envían (por índice). */
+  /** Rows that are not sent (by index). */
   excluded: Set<number>
   onExcludedChange: (excluded: Set<number>) => void
 }
 
-/** Contenido de la hoja (ya normalizado); el # coincide con el de la vista previa. */
+/** Contents of the sheet (already normalized); the # matches the one in the preview. */
 export function DataTable({ dataset, normalization, showOriginal, onColumnStepsChange, excluded, onExcludedChange }: Props) {
   const rows = showOriginal ? dataset.original : dataset.rows
-  // Última fila marcada o desmarcada, para Shift+clic por rango (como en Gmail).
+  // Last row checked or unchecked, for Shift+click ranges (as in Gmail).
   const lastClicked = useRef<number | null>(null)
 
   function toggleRow(index: number, include: boolean, range: boolean) {
@@ -27,7 +27,7 @@ export function DataTable({ dataset, normalization, showOriginal, onColumnStepsC
   }
 
   const includedCount = rows.length - excluded.size
-  // En estado intermedio, un clic incluye todas las filas.
+  // In the indeterminate state, a click includes every row.
   const toggleAll = () => onExcludedChange(includedCount === rows.length ? new Set(rows.map((_, i) => i)) : new Set())
   return (
     <Table.ScrollContainer minWidth={dataset.columns.length * 140} maxHeight={360} type="native">
@@ -76,7 +76,7 @@ export function DataTable({ dataset, normalization, showOriginal, onColumnStepsC
         </Table.Thead>
         <Table.Tbody>
           {rows.map((row, index) => (
-            // Las filas excluidas se atenúan: siguen visibles para poder volver a incluirlas.
+            // Excluded rows are dimmed: they stay visible so they can be included again.
             <Table.Tr key={index} style={excluded.has(index) ? { opacity: 0.45 } : undefined}>
               <Table.Td>
                 <Checkbox

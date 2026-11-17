@@ -1,6 +1,6 @@
 /**
- * Lo que muestra Review es lo que se envía, en el mismo orden: cada mensaje se decodifica con un
- * parser independiente (postal-mime) y se compara con el correo de Review de esa fila.
+ * What Review shows is what is sent, in the same order: each message is decoded with an
+ * independent parser (postal-mime) and compared with that row's email in Review.
  */
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
@@ -29,12 +29,12 @@ import {
 import { sendAll, stopSending } from './sending.ts'
 
 /**
- * Qué pasa con cada intento de envío. "stop": sale bien, pero el usuario presiona Stop mientras
- * se envía.
+ * What happens with each send attempt. "stop": it goes out fine, but the user presses Stop while
+ * sending.
  */
 type Outcome = 'ok' | 'fail' | 'unconfirmed' | 'auth' | 'limit' | 'stop'
 
-/** Resultados que detienen el envío después de ese correo. */
+/** Outcomes that stop the sending after that email. */
 const STOPPING: Outcome[] = ['unconfirmed', 'auth', 'limit', 'stop']
 
 interface Call {
@@ -43,8 +43,8 @@ interface Call {
 }
 
 /**
- * Gmail falso: guarda cada mensaje y responde según `outcomes` (después, "ok"). En cada envío
- * intenta además editar todo lo que cambia los correos, y anota si algo cambió.
+ * Fake Gmail: stores each message and responds according to `outcomes` (afterwards, "ok"). On each
+ * send it also tries to edit everything that changes the emails, and records whether anything changed.
  */
 function fakeGmail(outcomes: Outcome[] = []) {
   const calls: Call[] = []
@@ -89,12 +89,12 @@ function fakeGmail(outcomes: Outcome[] = []) {
 
 type Gmail = ReturnType<typeof fakeGmail>
 
-/** Filas a las que fueron los mensajes de `calls`, en orden. */
+/** Rows the messages in `calls` went to, in order. */
 async function rowsOf(calls: Call[]): Promise<number[]> {
   return (await Promise.all(calls.map(({ raw }) => parseMessage(raw)))).map(rowOf)
 }
 
-/** Cada mensaje enviado es, decodificado, el correo de Review de su fila. */
+/** Each sent message is, once decoded, the Review email of its row. */
 async function expectMatchesReview(calls: Call[], review: RenderedEmail[]) {
   const byRow = new Map(review.map((email) => [email.index, email]))
   for (const { raw } of calls) {
@@ -105,7 +105,7 @@ async function expectMatchesReview(calls: Call[], review: RenderedEmail[]) {
   }
 }
 
-/** Filas que un envío en ese modo debe enviar, en el orden de Review. */
+/** Rows that a send in that mode must send, in Review order. */
 function toSend(mode: SendMode): number[] {
   const state = useStore.getState()
   return reviewList(state)
@@ -118,8 +118,8 @@ function toSend(mode: SendMode): number[] {
 }
 
 /**
- * Un envío completo (Send, o Retry unconfirmed): debe enviar, en el orden de Review, un prefijo
- * de las filas que le tocan, y cortar antes del final solo si el último intento lo detuvo.
+ * A complete send (Send, or Retry unconfirmed): it must send, in Review order, a prefix
+ * of the rows it covers, and stop before the end only if the last attempt stopped it.
  */
 async function sendAndCheck(gmail: Gmail, mode: SendMode) {
   const expected = toSend(mode)
@@ -134,14 +134,14 @@ async function sendAndCheck(gmail: Gmail, mode: SendMode) {
   expect(useStore.getState().progress).toBeNull()
 }
 
-// --- Generadores ------------------------------------------------------------------------------
+// --- Generators -------------------------------------------------------------------------------
 
 const WORDS = ['Ana', 'José', 'Zoë', 'Łukasz', 'María José', '李小龙', "O'Brien", 'Ünal', 'Émilie', 'Bjørn', 'Nguyễn']
 
-/** Nombres con tildes, otros alfabetos y largos (se parten en varias "encoded words"). */
+/** Names with accents, other scripts and long ones (split into several "encoded words"). */
 const nameArb = fc.array(fc.constantFrom(...WORDS), { minLength: 1, maxLength: 6 }).map((words) => words.join(' '))
 
-/** Empieza con una letra para que no quede vacío tras la normalización (que quita invisibles). */
+/** Starts with a letter so it is not empty after normalization (which removes invisible characters). */
 const textArb = (maxLength: number) =>
   fc
     .tuple(fc.constantFrom('A', 'Ñ', '€', 'ß', 'Ж'), fc.string({ unit: 'grapheme', maxLength }))
@@ -152,7 +152,7 @@ const rowArb: fc.Arbitrary<RowSpec> = fc.record({
   subject: textArb(80),
   note: textArb(60),
   attachment: fc.constantFrom<RowAttachment>('own', 'folder', 'glob', 'missing'),
-  attachmentName: fc.constantFrom('', 'Informe', 'Factura ñandú', 'résumé.txt', '数据 2026'),
+  attachmentName: fc.constantFrom('', 'Report', 'Invoice ñandú', 'résumé.txt', '数据 2026'),
   cc: fc.boolean(),
 })
 
@@ -169,7 +169,7 @@ const scenarioArb = fc.array(rowArb, { minLength: 1, maxLength: 12 }).chain((row
   }),
 )
 
-// --- Pruebas ----------------------------------------------------------------------------------
+// --- Tests ------------------------------------------------------------------------------------
 
 const row = (overrides: Partial<RowSpec> = {}): RowSpec => ({
   name: 'Ana',
@@ -263,13 +263,13 @@ describe('sending matches Review', () => {
       fc.asyncProperty(scenarioArb, async ({ rows, excluded, outcomes }) => {
         loadScenario(rows, excluded)
         const state = useStore.getState()
-        // Con problemas no se puede enviar (la interfaz no deja): esos casos no aplican.
+        // With problems it cannot be sent (the UI does not allow it): those cases do not apply.
         fc.pre(state.problemCount === 0)
         const review = reviewList(state)
         const included = review.filter((email) => !state.excluded.has(email.index)).map((email) => email.index)
         const gmail = fakeGmail(outcomes)
 
-        // Send / Send remaining mientras quede algo pendiente; luego Retry unconfirmed.
+        // Send / Send remaining while something is pending; then Retry unconfirmed.
         for (let attempt = 0; attempt < 100; attempt++) {
           const mode: SendMode | null =
             toSend('pending').length > 0 ? 'pending' : toSend('unconfirmed').length > 0 ? 'unconfirmed' : null
@@ -279,7 +279,7 @@ describe('sending matches Review', () => {
 
         await expectMatchesReview(gmail.calls, review)
         expect(gmail.lockViolations).toEqual([])
-        // Al final cada fila incluida salió una vez, y ninguna excluida.
+        // In the end each included row went out once, and no excluded one did.
         const delivered = (await rowsOf(gmail.calls.filter(({ outcome }) => outcome === 'ok' || outcome === 'stop')))
         expect([...delivered].sort((a, b) => a - b)).toEqual(included)
         expect(reviewList(useStore.getState())).toBe(review)

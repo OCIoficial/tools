@@ -1,6 +1,6 @@
 /**
- * De dónde salen los datos. Google (src/google) y los datos de ejemplo (src/sample) implementan
- * las mismas interfaces, así los componentes no saben de dónde vienen.
+ * Where the data comes from. Google (mailmerge/google) and the sample data (mailmerge/sample)
+ * implement the same interfaces, so the components do not know where it comes from.
  */
 
 export interface Spreadsheet {
@@ -10,31 +10,31 @@ export interface Spreadsheet {
 }
 
 export interface SpreadsheetSource {
-  /** Si volver a cargar una hoja puede traer datos nuevos (no en lo pegado: no hay de dónde recargar). */
+  /** Whether reloading a sheet can bring new data (not for pasted data: there is nowhere to reload from). */
   canReload: boolean
-  /** Deja elegir una planilla; null si se cancela. */
+  /** Lets the user choose a spreadsheet; null if cancelled. */
   pick(): Promise<Spreadsheet | null>
-  /** Filas de una hoja, como strings, sin celdas vacías al final. */
+  /** Rows of a sheet, as strings, without empty cells at the end. */
   loadSheet(spreadsheet: Spreadsheet, sheet: string): Promise<string[][]>
 }
 
-/** Qué está haciendo una carga larga, y cuánto lleva si se puede medir. */
+/** What a long load is doing, and how far along it is if it can be measured. */
 export interface LoadProgress {
-  /** Por ejemplo "Downloading alumnos.zip". */
+  /** For example "Downloading students.zip". */
   message: string
-  /** Avance medible: sin total no hay barra, solo el indicador animado. */
+  /** Measurable progress: without a total there is no bar, only the animated indicator. */
   done?: number
   total?: number
   unit?: 'bytes' | 'files'
 }
 
-/** Un archivo o carpeta de Drive elegido; con esto se vuelve a descargar ("Reload"). */
+/** A Drive file or folder that was chosen; with this it is downloaded again ("Reload"). */
 export type DriveOrigin =
   | { kind: 'drive-folder'; id: string; name: string }
   | { kind: 'drive-archive'; id: string; name: string }
   | { kind: 'drive-file'; id: string; name: string; mimeType: string }
 
-/** De dónde salieron los archivos de un adjunto o de una fuente de rutas. */
+/** Where the files of an attachment or of a path source came from. */
 export type Origin = { kind: 'upload' } | { kind: 'sample' } | DriveOrigin
 
 export const isDriveOrigin = (origin: Origin): origin is DriveOrigin => origin.kind.startsWith('drive-')

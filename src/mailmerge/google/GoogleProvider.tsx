@@ -12,35 +12,35 @@ import { pickArchive, pickFiles, pickFolder, pickSpreadsheet } from './picker.ts
 type OnProgress = (progress: LoadProgress) => void
 
 /**
- * Archivos de Drive para los adjuntos. Elegir y cargar van por separado: con el origen
- * guardado, "Reload" vuelve a cargar lo mismo sin abrir el selector.
+ * Drive files for the attachments. Choosing and loading are separate: with the source
+ * saved, "Reload" loads the same thing again without opening the picker.
  */
 export interface Drive {
-  /** null si se cancela. */
+  /** null if cancelled. */
   pickFolder(): Promise<DriveOrigin | null>
   pickArchive(): Promise<DriveOrigin | null>
   pickFiles(): Promise<DriveOrigin[] | null>
-  /** Carpeta o archivo comprimido, como árbol (para las rutas). */
+  /** Folder or archive, as a tree (for the paths). */
   loadTree(origin: DriveOrigin, onProgress: OnProgress): Promise<AttachmentTree>
-  /** Archivo suelto, o carpeta comprimida en un ZIP (para adjuntar a todos). */
+  /** Single file, or folder compressed into a ZIP (to attach to every email). */
   loadFile(origin: DriveOrigin, onProgress: OnProgress): Promise<FileNode>
 }
 
 /**
- * Todo lo que la app usa de Google. El token nunca sale de aquí: los componentes piden
- * "elige una planilla" o "envía este mensaje", no llaman a las APIs.
+ * Everything the app uses from Google. The token never leaves this file: the components ask
+ * "choose a spreadsheet" or "send this message", they do not call the APIs.
  */
 export interface Google {
   signedIn: boolean
   email: string | null
   connecting: boolean
-  /** Error del último inicio de sesión. */
+  /** Error from the last sign-in. */
   error: string | null
   signIn: () => Promise<void>
   signOut: () => Promise<void>
   spreadsheets: SpreadsheetSource
   drive: Drive
-  /** Envía un mensaje ya armado (RFC 5322) desde la cuenta conectada. */
+  /** Sends an already built message (RFC 5322) from the signed-in account. */
   sendMessage: (message: Uint8Array) => Promise<void>
 }
 
@@ -91,7 +91,7 @@ export function GoogleProvider({ children }: { children: ReactNode }) {
         if (origin.kind !== 'drive-archive') throw new Error(`"${origin.name}" is not a folder or an archive.`)
         const message = `Downloading ${origin.name}`
         onProgress({ message })
-        // El tamaño viene de los datos del archivo: no se depende de Content-Length en la descarga.
+        // The size comes from the file's metadata: it does not depend on Content-Length in the download.
         const total = (await run((token) => getDriveFileSize(token, origin.id))) ?? undefined
         const data = await run((token) =>
           downloadDriveFile(token, origin.id, (done) => onProgress({ message, done, total, unit: 'bytes' })),

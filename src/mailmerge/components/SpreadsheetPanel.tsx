@@ -12,7 +12,7 @@ import { NormalizedData } from './NormalizedData.tsx'
 import { Notice } from './Notice.tsx'
 import { PasteArea } from './PasteArea.tsx'
 
-/** La planilla cargada y la fuente que la entrega, para cambiar de hoja o recargarla. */
+/** The loaded spreadsheet and the source that provides it, to switch sheets or reload it. */
 interface Loaded {
   source: SpreadsheetSource
   spreadsheet: Spreadsheet
@@ -23,13 +23,13 @@ export function SpreadsheetPanel() {
   const [loaded, setLoaded] = useState<Loaded | null>(null)
   const spreadsheet = loaded?.spreadsheet ?? null
   const [sheet, setSheet] = useState<string | null>(null)
-  // Valores crudos de la hoja, para rearmar las filas al cambiar el checkbox sin volver a pedirlos.
+  // Raw values of the sheet, to rebuild the rows when the checkbox changes without fetching them again.
   const [values, setValues] = useState<string[][] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function withLoading(task: () => Promise<void>) {
-    // Mientras se envía no se carga nada: cambiaría los correos que muestra Review.
+    // While sending nothing is loaded: it would change the emails Review shows.
     if (isSending()) return
     setLoading(true)
     setError(null)
@@ -54,7 +54,7 @@ export function SpreadsheetPanel() {
     const next = await source.loadSheet(info, name)
     setSheet(name)
     setValues(next)
-    // Cada hoja recuerda si su primera fila es encabezado.
+    // Each sheet remembers whether its first row is a header.
     emit(info, name, next, settingsFor(useStore.getState(), sheetKey(info.id, name)).hasHeader)
   }
 
@@ -77,15 +77,15 @@ export function SpreadsheetPanel() {
   const chooseFromGoogle = () => choose(async () => google.spreadsheets)
   const chooseFromPaste = (rows: string[][]) => choose(async () => pastedSpreadsheet(rows))
   const chooseFromFile = (file: File | null) => file && choose(() => fileSpreadsheet(file))
-  // Import dinámico dentro de DEV: el ejemplo no queda en el build de producción.
+  // Dynamic import inside DEV: the sample does not end up in the production build.
   const chooseSample = () => choose(async () => (await import('../sample/index.ts')).sampleSpreadsheets)
 
   return (
     <Card withBorder h="100%">
       <Stack gap="sm">
         <Title order={4}>1. Spreadsheet</Title>
-        {/* Como en Attachments: mismo ancho, en fila si la tarjeta es ancha y apilados si no.
-            Se mide la tarjeta (container query), no la pantalla. */}
+        {/* As in Attachments: same width, in a row if the card is wide and stacked if not.
+            The card is measured (container query), not the screen. */}
         <div style={{ containerType: 'inline-size' }}>
           <SimpleGrid type="container" cols={{ base: 1, '420px': 2 }} spacing="xs">
             <Button
@@ -97,7 +97,7 @@ export function SpreadsheetPanel() {
             >
               {spreadsheet ? 'Change spreadsheet' : 'Choose spreadsheet'}
             </Button>
-            {/* CSV, Excel o LibreOffice; no necesita Google. */}
+            {/* CSV, Excel or LibreOffice; does not need Google. */}
             <FileButton onChange={chooseFromFile} accept={SPREADSHEET_ACCEPT}>
               {(props) => (
                 <Button
@@ -113,7 +113,7 @@ export function SpreadsheetPanel() {
             </FileButton>
           </SimpleGrid>
         </div>
-        {/* Solo en desarrollo; aparte, para no mezclarlo con las fuentes reales. */}
+        {/* Development only; separate, so it does not mix with the real sources. */}
         {import.meta.env.DEV && (
           <Button
             variant="light"
@@ -131,7 +131,7 @@ export function SpreadsheetPanel() {
             Sign in with Google to choose a spreadsheet. Uploading a file or pasting cells works without it.
           </Text>
         )}
-        {/* No necesita Google: las celdas vienen del portapapeles. */}
+        {/* Does not need Google: the cells come from the clipboard. */}
         <PasteArea onPaste={chooseFromPaste} onError={setError} compact={spreadsheet !== null} />
         {spreadsheet && (
           <>
@@ -150,7 +150,7 @@ export function SpreadsheetPanel() {
                 </Button>
               )}
             </Group>
-            {/* Con una sola hoja no hay nada que elegir. */}
+            {/* With a single sheet there is nothing to choose. */}
             {spreadsheet.sheets.length > 1 && (
               <Select
                 label="Sheet"
@@ -163,7 +163,7 @@ export function SpreadsheetPanel() {
             )}
           </>
         )}
-        {/* Por hoja: aparece cuando hay una hoja cargada. */}
+        {/* Per sheet: shown when a sheet is loaded. */}
         {currentKey && (
           <Checkbox
             label="First row is a header"

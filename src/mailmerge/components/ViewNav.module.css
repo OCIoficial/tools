@@ -1,5 +1,5 @@
 .viewControl {
-  /* Mismo ancho para ambos segmentos, calculado para que quepa "Review" con su contador. */
+  /* Same width for both segments, computed so "Review" fits with its counter. */
   width: 104px;
   flex: none;
 }
@@ -11,7 +11,7 @@
   gap: 6px;
 }
 
-/* Contador de correos con problemas, en línea con el texto. */
+/* Counter of emails with problems, inline with the text. */
 .viewCounter {
   min-width: 18px;
   padding: 0 5px;
@@ -25,7 +25,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- Barra inferior (teléfono) ------------------------------------------- */
+/* --- Bottom bar (phone) -------------------------------------------------- */
 
 .bottomNav {
   display: flex;
@@ -51,7 +51,7 @@
   outline-offset: -4px;
 }
 
-/* Píldora detrás del ícono activo, como en la navegación inferior de Material 3. */
+/* Pill behind the active icon, as in Material 3's bottom navigation. */
 .bottomIcon {
   display: flex;
   align-items: center;

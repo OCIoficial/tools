@@ -1,9 +1,9 @@
-/* En el teléfono no debe pasarse del ancho de la pantalla. */
+/* On a phone it must not be wider than the screen. */
 .dropdown {
   max-width: calc(100vw - 32px);
 }
 
-/* Ejemplo arriba, explicación abajo: los ejemplos largos no aplastan la explicación. */
+/* Example on top, explanation below: long examples do not squash the explanation. */
 .rows {
   display: flex;
   flex-direction: column;

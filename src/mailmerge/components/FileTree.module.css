@@ -27,7 +27,7 @@
   border-top: 1px solid var(--mantine-color-default-border);
 }
 
-/* --- Árbol --------------------------------------------------------------- */
+/* --- Tree ---------------------------------------------------------------- */
 
 .list {
   position: relative;
@@ -37,7 +37,7 @@
   user-select: none;
 }
 
-/* Guía vertical tenue bajo cada carpeta abierta, alineada con su chevron (como en VS Code). */
+/* Faint vertical guide under each open folder, aligned with its chevron (as in VS Code). */
 .list[data-guide]::before {
   content: '';
   position: absolute;

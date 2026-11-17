@@ -1,7 +1,7 @@
 import { gunzip, unzip } from 'fflate'
 import { buildTree, type AttachmentTree, type TreeEntry } from './tree.ts'
 
-/** Archivos basura que agregan algunos compresores (macOS). */
+/** Junk files added by some archivers (macOS). */
 const JUNK = /(^|\/)(__MACOSX\/|\.DS_Store$)/
 
 function unzipAsync(data: Uint8Array) {
@@ -30,7 +30,7 @@ function readOctal(data: Uint8Array, offset: number, length: number): number {
   return parseInt(readString(data, offset, length).trim() || '0', 8)
 }
 
-/** Lector mínimo de tar (ustar, nombres largos de GNU y rutas pax). */
+/** Minimal tar reader (ustar, GNU long names and pax paths). */
 export function parseTar(data: Uint8Array): { files: Record<string, Uint8Array>; dirs: string[] } {
   const files: Record<string, Uint8Array> = {}
   const dirs: string[] = []
@@ -63,7 +63,7 @@ export function parseTar(data: Uint8Array): { files: Record<string, Uint8Array>;
   return { files, dirs }
 }
 
-/** Lee un .zip, .tar, .tar.gz o .tgz y arma el árbol con su contenido. */
+/** Reads a .zip, .tar, .tar.gz or .tgz and builds the tree with its contents. */
 export async function readArchive(name: string, data: Uint8Array): Promise<AttachmentTree> {
   let files: Record<string, Uint8Array>
   let dirs: string[] = []

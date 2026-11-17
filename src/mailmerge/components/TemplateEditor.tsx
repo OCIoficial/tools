@@ -26,7 +26,7 @@ import { updateTemplate, useSending, useStore } from '../store.ts'
 
 type TextField = Exclude<TemplateField, 'body'>
 
-/** Campos poco usados: ocultos hasta que se piden con su enlace junto a To, como en Gmail. */
+/** Rarely used fields: hidden until requested with their link next to To, as in Gmail. */
 const OPTIONAL_FIELDS = ['cc', 'bcc', 'replyTo'] as const satisfies TextField[]
 type OptionalField = (typeof OPTIONAL_FIELDS)[number]
 
@@ -36,8 +36,8 @@ const FORMATS: { value: BodyFormat; label: string }[] = [
 ]
 
 /**
- * Un campo de texto del template. Lee solo su propio valor del store: escribir en Subject
- * re-dibuja este campo y nada más.
+ * A text field of the template. It reads only its own value from the store: typing in Subject
+ * re-renders this field and nothing else.
  */
 function TemplateTextInput({
   field,
@@ -49,7 +49,7 @@ function TemplateTextInput({
   field: TextField
   inputRef: Ref<HTMLInputElement>
   onFocus: () => void
-  /** Campo opcional: si está vacío, muestra una ✕ para ocultarlo (cerrar no debe borrar nada). */
+  /** Optional field: when empty, shows a ✕ to hide it (closing must not delete anything). */
   onClose?: () => void
 } & Omit<Partial<TextInputProps>, 'onFocus'>) {
   const value = useStore((state) => state.template[field])
@@ -70,7 +70,7 @@ function TemplateTextInput({
   )
 }
 
-/** El cuerpo en Markdown; lee solo el texto del cuerpo. */
+/** The Markdown body; reads only the body text. */
 function MarkdownBody({
   editorRef,
   vim,
@@ -97,8 +97,8 @@ function MarkdownBody({
 }
 
 /**
- * La tarjeta del template. No lee los textos (cada campo lee el suyo), solo el formato, las
- * columnas para los botones de variables y si los campos opcionales tienen algo.
+ * The template card. It does not read the texts (each field reads its own), only the format, the
+ * columns for the variable buttons and whether the optional fields have something.
  */
 export function TemplateEditor() {
   const format = useStore((state) => state.template.format)
@@ -110,15 +110,15 @@ export function TemplateEditor() {
   }
   const inputs = useRef<Partial<Record<TextField, HTMLInputElement | null>>>({})
   const markdownEditor = useRef<MarkdownEditorHandle>(null)
-  // Preferencia personal, no del template: se guarda aparte.
+  // Personal preference, not part of the template: saved separately.
   const [vim, setVim] = useLocalStorage({ key: 'mail-merge:vim', defaultValue: false, getInitialValueInEffect: false })
-  // Vim necesita teclado físico: al tacto no se ofrece y queda apagado, aunque la preferencia
-  // se conserva (por ejemplo, al usar una tablet con y sin teclado).
+  // Vim needs a physical keyboard: on touch it is not offered and stays off, although the preference
+  // is kept (for example, when using a tablet with and without a keyboard).
   const keyboard = !usePrimaryTouch()
   const [target, setTarget] = useState<TemplateField>('body')
   const toId = useId()
-  // Abiertos en esta sesión. Un campo con valor se muestra siempre, aunque no esté aquí:
-  // el template se guarda en el navegador y un Bcc oculto que igual se envía sería peor.
+  // Opened in this session. A field with a value is always shown, even if it is not here:
+  // the template is saved in the browser, and a hidden Bcc that still gets sent would be worse.
   const [opened, setOpened] = useState<ReadonlySet<OptionalField>>(() => new Set())
   const isVisible = (field: OptionalField) => opened.has(field) || filled[field]
   const visibleOptional = OPTIONAL_FIELDS.filter(isVisible)
@@ -126,7 +126,7 @@ export function TemplateEditor() {
 
   function openField(field: OptionalField) {
     setOpened((current) => new Set(current).add(field))
-    // El cursor va al campo nuevo, así también recibe las variables que se inserten.
+    // The cursor goes to the new field, so it also receives the variables that are inserted.
     requestAnimationFrame(() => inputs.current[field]?.focus())
   }
 
@@ -141,13 +141,13 @@ export function TemplateEditor() {
 
   const editor = useEditor({
     extensions: [StarterKit.configure({ link: false }), Link.configure({ openOnClick: false })],
-    // Sin control desde React: el contenido inicial se lee una vez y luego manda el editor.
+    // Not controlled from React: the initial content is read once and then the editor is in charge.
     content: useStore.getState().template.body,
     onUpdate: ({ editor }) => updateTemplate({ body: editor.getHTML() }),
     onFocus: () => setTarget('body'),
   })
 
-  // Mientras se envía, el editor queda de solo lectura (los demás campos los bloquea el fieldset de App).
+  // While sending, the editor is read-only (the other fields are locked by App's fieldset).
   const sending = useSending()
   useEffect(() => {
     editor?.setEditable(!sending, false)
@@ -162,7 +162,7 @@ export function TemplateEditor() {
     }
     const field = target
     const input = inputs.current[field]
-    // Se lee al insertar, sin suscribirse: la tarjeta no se re-dibuja al escribir.
+    // Read on insert, without subscribing: the card does not re-render while typing.
     const value = useStore.getState().template[field]
     const start = input?.selectionStart ?? value.length
     const end = input?.selectionEnd ?? value.length
@@ -204,7 +204,7 @@ export function TemplateEditor() {
                   key={column.key}
                   size="compact-xs"
                   variant="light"
-                  // Evita que el botón robe el foco y se pierda la posición del cursor.
+                  // Keeps the button from stealing focus and losing the cursor position.
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => insertVariable(column.key)}
                 >
@@ -216,7 +216,7 @@ export function TemplateEditor() {
         )}
 
         <Stack gap={4}>
-          {/* Etiqueta propia: los enlaces no pueden ir dentro del <label> de To. */}
+          {/* Own label: the links cannot go inside To's <label>. */}
           <Group justify="space-between" gap="xs" wrap="nowrap">
             <Text component="label" htmlFor={toId} size="sm" fw={500}>
               {FIELD_LABELS.to}
@@ -283,7 +283,7 @@ export function TemplateEditor() {
               <RichTextEditor.Content mih={240} />
             </RichTextEditor>
           )}
-          {/* Barra inferior del editor, como en GitLab: formato a la izquierda, Vim a la derecha. */}
+          {/* Bottom bar of the editor, as in GitLab: formatting on the left, Vim on the right. */}
           <Group justify="space-between" gap="xs">
             <Group gap="xs">
               <SegmentedControl

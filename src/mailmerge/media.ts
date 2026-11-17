@@ -2,25 +2,25 @@ import { em } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 
 /**
- * Consultas sobre la pantalla y el dispositivo. Se leen de inmediato (no en un efecto), para
- * que el primer render no muestre la versión equivocada y luego cambie.
+ * Queries about the screen and the device. They are read right away (not in an effect), so
+ * the first render does not show the wrong version and then change.
  */
 const useMedia = (query: string) => useMediaQuery(query, false, { getInitialValueInEffect: false })
 
 /**
- * Pantalla angosta, por debajo del breakpoint `sm` de Mantine (48em), el mismo límite que usan
- * `hiddenFrom="sm"` y `visibleFrom="sm"`. Para el layout: barra inferior, lista o vista previa en Review.
+ * Narrow screen, below Mantine's `sm` breakpoint (48em), the same limit used by
+ * `hiddenFrom="sm"` and `visibleFrom="sm"`. For the layout: bottom bar, list or preview in Review.
  */
 export function useIsMobile(): boolean {
   return useMedia(`(max-width: ${em(767.9)})`)
 }
 
 /**
- * El puntero principal es el dedo: teléfono o tablet usada al tacto. Para instrucciones
- * ("mantén presionado" en vez de Ctrl+V) y para ocultar lo que necesita teclado físico (Vim).
+ * The primary pointer is a finger: a phone or a tablet used by touch. For instructions
+ * ("press and hold" instead of Ctrl+V) and to hide what needs a physical keyboard (Vim).
  *
- * Se usa el puntero principal y no any-pointer: los teléfonos Samsung (y otros Android)
- * informan `any-pointer: fine` sin mouse, pero su puntero principal sí es `coarse`.
+ * The primary pointer is used, not any-pointer: Samsung phones (and other Android devices)
+ * report `any-pointer: fine` without a mouse, but their primary pointer is `coarse`.
  */
 export function usePrimaryTouch(): boolean {
   return useMedia('(pointer: coarse)')

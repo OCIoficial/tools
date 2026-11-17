@@ -1,26 +1,26 @@
 import type { Origin } from '../sources.ts'
 import type { AttachmentTree, FileNode } from './tree.ts'
 
-/** Un archivo que va en todos los correos. */
+/** A file that goes in every email. */
 export interface SharedAttachment {
   id: string
   origin: Origin
   file: FileNode
-  /** Nombre del adjunto, con variables; vacío = el del archivo. */
+  /** Attachment name, with variables; empty = the file's name. */
   name: string
 }
 
-/** Una ruta = un adjunto, relativa al árbol de su fuente. */
+/** One path = one attachment, relative to its source's tree. */
 export interface AttachmentPath {
-  /** Con comodines, lo que calce va en un solo ZIP. */
+  /** With wildcards, whatever matches goes in a single ZIP. */
   path: string
-  /** Nombre del adjunto, con variables; vacío = automático. */
+  /** Attachment name, with variables; empty = automatic. */
   name: string
-  /** Si es obligatorio, que no se encuentre es un problema; si no, el correo sale sin ese adjunto. */
+  /** If required, not finding it is a problem; if not, the email goes out without that attachment. */
   required: boolean
 }
 
-/** Una carpeta o archivo comprimido con sus rutas: de aquí salen los adjuntos de cada fila. */
+/** A folder or archive with its paths: each row's attachments come from here. */
 export interface PathSource {
   id: string
   origin: Origin

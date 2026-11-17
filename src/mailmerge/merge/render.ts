@@ -17,11 +17,11 @@ function createEngine(escapeHtml: boolean) {
   return engine
 }
 
-// Los campos de texto plano no se escapan; en el cuerpo HTML los valores sí.
+// Plain-text fields are not escaped; in the HTML body the values are.
 const textEngine = createEngine(false)
 const htmlEngine = createEngine(true)
 
-// Sin HTML crudo; sin typographer, que cambiaría las comillas de las etiquetas Liquid.
+// No raw HTML; no typographer, which would change the quotes of the Liquid tags.
 const markdown = new MarkdownIt({ html: false, linkify: true, breaks: true, typographer: false })
 
 const ENTITIES: Record<string, string> = {
@@ -34,8 +34,8 @@ const ENTITIES: Record<string, string> = {
 }
 
 /**
- * El cuerpo llega como HTML, así que `{% if a > 1 %}` llega como `{% if a &gt; 1 %}`.
- * Se decodifican las entidades solo dentro de las etiquetas Liquid.
+ * The body arrives as HTML, so `{% if a > 1 %}` arrives as `{% if a &gt; 1 %}`.
+ * Entities are decoded only inside the Liquid tags.
  */
 function decodeLiquidTags(html: string): string {
   return html.replace(/\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\}/g, (tag) =>
@@ -44,8 +44,8 @@ function decodeLiquidTags(html: string): string {
 }
 
 /**
- * HTML del cuerpo antes de aplicar Liquid. El Markdown se convierte primero, una sola vez,
- * para que los valores de la planilla nunca se interpreten como Markdown.
+ * Body HTML before applying Liquid. The Markdown is converted first, only once,
+ * so that spreadsheet values are never interpreted as Markdown.
  */
 function bodyHtml(template: EmailTemplate): string {
   return template.format === 'markdown' ? markdown.render(template.markdown) : template.body
@@ -55,7 +55,7 @@ const FIELDS = Object.keys(FIELD_LABELS) as TemplateField[]
 export const ADDRESS_FIELDS: TemplateField[] = ['to', 'cc', 'bcc', 'replyTo']
 
 interface CompiledPath {
-  /** null si la ruta tiene un error de sintaxis. */
+  /** null if the path has a syntax error. */
   templates: Template[] | null
   name: Template[] | null
   required: boolean
@@ -63,11 +63,11 @@ interface CompiledPath {
 
 export interface CompiledTemplate {
   fields: Partial<Record<TemplateField, Template[]>>
-  /** Adjuntos comunes, en orden; name null si el nombre tiene un error de sintaxis. */
+  /** Shared attachments, in order; name null if the name has a syntax error. */
   shared: { attachment: SharedAttachment; name: Template[] | null }[]
-  /** Fuentes de rutas, en orden, cada una con sus rutas. */
+  /** Path sources, in order, each with its paths. */
   sources: { tree: AttachmentTree; label: string; paths: CompiledPath[] }[]
-  /** Errores de sintaxis; si hay alguno, ningún correo se puede renderizar. */
+  /** Syntax errors; if there are any, no email can be rendered. */
   errors: string[]
 }
 
@@ -76,7 +76,7 @@ export interface Attachments {
   sources: PathSource[]
 }
 
-/** Nombre con que se muestra un adjunto común en los mensajes. */
+/** Name a shared attachment is shown with in the messages. */
 export const sharedLabel = ({ file, name }: SharedAttachment) => name.trim() || file.filename
 
 export function compileTemplate(template: EmailTemplate, attachments: Attachments): CompiledTemplate {
@@ -97,7 +97,7 @@ export function compileTemplate(template: EmailTemplate, attachments: Attachment
       compiled.errors.push(`Attachment "${sharedLabel(attachment)}": ${(e as Error).message}`)
     }
   }
-  // Con una sola fuente, los mensajes no necesitan nombrarla.
+  // With a single source, the messages do not need to name it.
   const named = attachments.sources.length > 1
   for (const source of attachments.sources) {
     const label = named ? `${source.tree.name}, path` : 'Path'
@@ -126,14 +126,14 @@ export interface Problem {
 export type RenderedEmail = Record<TemplateField, string> & {
   index: number
   attachments: ResolvedAttachment[]
-  /** Rutas opcionales que no se encontraron: el correo sale sin esos adjuntos. */
+  /** Optional paths that were not found: the email goes out without those attachments. */
   skippedAttachments: string[]
   problems: Problem[]
 }
 
 const EMAIL_PATTERN = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/
 
-/** Separa "a@x.com, Nombre <b@y.com>" en direcciones; acepta coma o punto y coma. */
+/** Splits "a@x.com, Name <b@y.com>" into addresses; accepts comma or semicolon. */
 export function splitAddresses(value: string): string[] {
   return value
     .split(/[,;]/)
@@ -148,7 +148,7 @@ function addressOf(entry: string): string {
 function resolveAttachments(compiled: CompiledTemplate, row: Row, email: RenderedEmail) {
   const problem = (message: string) => email.problems.push({ field: 'attachments', message })
 
-  // Primero los comunes, en orden.
+  // Shared ones first, in order.
   for (const { attachment, name: nameTemplates } of compiled.shared) {
     let name = ''
     try {
@@ -161,12 +161,12 @@ function resolveAttachments(compiled: CompiledTemplate, row: Row, email: Rendere
     email.attachments.push(withName({ kind: 'file', filename: file.filename, size: file.size, file }, name))
   }
 
-  // Luego las rutas de cada fuente, en orden.
+  // Then the paths of each source, in order.
   for (const { tree, label, paths } of compiled.sources) {
     paths.forEach(({ templates, name: nameTemplates, required }, i) => {
       if (!templates) return
       const where = `${label} ${i + 1}`
-      // Opcional y sin archivo: no es un problema, el correo sale sin ese adjunto.
+      // Optional and no file: not a problem, the email goes out without that attachment.
       const missing = (path: string, message: string) =>
         required ? problem(message) : email.skippedAttachments.push(path || where)
       let path: string
@@ -179,7 +179,7 @@ function resolveAttachments(compiled: CompiledTemplate, row: Row, email: Rendere
         return
       }
       const inTree = compiled.sources.length > 1 ? ` in "${tree.name}"` : ''
-      // Antes "/" adjuntaba todo lo cargado; ahora eso es un adjunto común.
+      // "/" used to attach everything loaded; now that is a shared attachment.
       if (path === '/') {
         return problem(
           `${where}: "/" is no longer supported. Add the file under "Attached to every email", or use "*" for everything${inTree}.`,
@@ -189,17 +189,17 @@ function resolveAttachments(compiled: CompiledTemplate, row: Row, email: Rendere
 
       const matches = findPath(tree, path)
       if (matches.length === 0) return missing(path, `"${path}" not found${inTree}.`)
-      // Sin comodines debe haber un solo resultado; Drive permite nombres repetidos.
+      // Without wildcards there must be a single result; Drive allows repeated names.
       if (!hasGlob(path) && matches.length > 1)
         return problem(`"${path}" matches ${matches.length} items with the same name${inTree}.`)
-      // Una ruta es un solo adjunto, aunque calce con varias cosas.
+      // A path is a single attachment, even if it matches several things.
       const attachment = attachmentFrom(tree, matches)
       if (attachment.kind === 'zip' && attachment.entries.length === 0) return missing(path, `"${path}" has no files.`)
       email.attachments.push(withName(attachment, name))
     })
   }
 
-  // Dos adjuntos con el mismo nombre: los clientes de correo los muestran de forma inconsistente.
+  // Two attachments with the same name: email clients show them inconsistently.
   const byName = new Map<string, number>()
   for (const { filename } of email.attachments) {
     const key = filename.toLowerCase()
