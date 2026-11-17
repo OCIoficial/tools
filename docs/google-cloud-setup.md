@@ -27,6 +27,7 @@ root [README](../README.md)).
    - **Test users:** add the email addresses that will use the app (100 at most).
 3. In **Data Access**, add the scopes:
    - `https://www.googleapis.com/auth/drive.readonly`
+   - `https://www.googleapis.com/auth/drive.file`
    - `https://www.googleapis.com/auth/gmail.send`
 
 In Testing mode no Google verification is required. When signing in, the warning

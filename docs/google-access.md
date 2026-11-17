@@ -6,7 +6,8 @@
 (TypeScript, static site) and published at <https://ocioficial.github.io/tools/>, with one route
 per app (`/tools/mailmerge/`, `/tools/credentials/`). **There is no backend**: all communication
 with Google happens directly from the client. The Google sign-in (`src/shared/google`) is shared
-by every app; today only Mail Merge uses it.
+by every app: Mail Merge reads from Drive and sends with Gmail, and Credentials uploads the
+generated PDFs to Drive.
 
 ## 1. Google Cloud project
 
@@ -22,9 +23,12 @@ by every app; today only Mail Merge uses it.
 | Scope | Classification | Use |
 |---|---|---|
 | `https://www.googleapis.com/auth/drive.readonly` | Restricted | Read spreadsheets, files and folder trees from Drive (also covers reading through the Sheets API) |
+| `https://www.googleapis.com/auth/drive.file` | Non-sensitive | Credentials: create the PDFs in a folder chosen with the Picker |
 | `https://www.googleapis.com/auth/gmail.send` | Sensitive | Send the emails |
 
-- The **minimum** permissions are requested: read-only in Drive and send-only in Gmail.
+- The **minimum** permissions are requested: read-only in Drive and send-only in Gmail. Writing to
+  Drive uses `drive.file`, which only reaches files the app created and folders the user chose in
+  the Picker, instead of the full `drive` scope.
 - `spreadsheets.readonly` is not requested separately, because `drive.readonly` already allows
   reading spreadsheets.
 - If drafts are needed in the future instead of sending directly, `gmail.compose` will have to be

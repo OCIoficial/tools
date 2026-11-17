@@ -135,3 +135,15 @@ export function safeFileName(s: string): string {
   // eslint-disable-next-line no-control-regex
   return s.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, "_").trim() || "credentials";
 }
+
+/** One `.pdf` file name per PDF name, made safe and unique ("x.pdf", "x (2).pdf", …). */
+export function pdfFileNames(names: string[]): string[] {
+  const used = new Set<string>();
+  return names.map((name) => {
+    const base = safeFileName(name);
+    let file = `${base}.pdf`;
+    for (let i = 2; used.has(file); i++) file = `${base} (${i}).pdf`;
+    used.add(file);
+    return file;
+  });
+}

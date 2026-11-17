@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { autoMap, detectHeader, parseTable, type Rows } from "./lib/data";
+import { autoMap, detectHeader, parseTable, pdfFileNames, type Rows } from "./lib/data";
 import { EMPTY_MAPPING, type Mapping, type User } from "./lib/fields";
 
 export interface GeneratedPdf {
@@ -7,6 +7,17 @@ export interface GeneratedPdf {
   count: number;
   bytes: Uint8Array;
 }
+
+/** Where the PDFs are uploaded; the same shape as the Drive folder from google/. */
+export interface UploadFolder {
+  id: string;
+  name: string;
+}
+
+export type Upload =
+  | { status: "uploading"; folder: UploadFolder; done: number; total: number }
+  | { status: "done"; folder: UploadFolder; total: number }
+  | { status: "failed"; folder: UploadFolder; done: number; total: number; error: string };
 
 export const PHASES = ["Regional", "Final"];
 
@@ -29,6 +40,8 @@ interface State {
   pdfs: GeneratedPdf[] | null;
   /** Index of the PDF shown in the preview. */
   current: number;
+  /** Upload of the current PDFs to Google Drive, if one was started. */
+  upload: Upload | null;
 }
 
 export const useStore = create<State>(() => ({
@@ -43,13 +56,15 @@ export const useStore = create<State>(() => ({
   generating: false,
   pdfs: null,
   current: 0,
+  upload: null,
 }));
 
 const set = useStore.setState;
 
 /** Changes an input of the PDFs: previously generated PDFs become stale. */
 function setInput(input: Partial<State>) {
-  set({ ...input, pdfs: null });
+  if (useStore.getState().upload?.status === "uploading") return;
+  set({ ...input, pdfs: null, upload: null });
 }
 
 export function loadText(text: string, source: string) {
@@ -81,6 +96,7 @@ export const loadPdfLib = () => import("./lib/pdf");
 
 /** Generates one PDF per group of users. */
 export async function generate(groups: Map<string, User[]>): Promise<void> {
+  if (useStore.getState().upload?.status === "uploading") return;
   const phase = phaseOf(useStore.getState());
   set({ generating: true, error: null });
   try {
@@ -91,10 +107,40 @@ export async function generate(groups: Map<string, User[]>): Promise<void> {
       // jsPDF blocks the main thread; yield so the UI stays responsive.
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
-    set({ pdfs, current: 0 });
+    set({ pdfs, current: 0, upload: null });
   } catch (e) {
     set({ error: `Error generating PDFs: ${e instanceof Error ? e.message : String(e)}` });
   } finally {
     set({ generating: false });
   }
 }
+
+export const isUploading = (state: Pick<State, "upload">) => state.upload?.status === "uploading";
+
+/**
+ * Uploads every PDF to a folder as a separate file, one at a time. The files keep the names
+ * they get in the .zip. On an error it stops, and the PDFs already uploaded stay in Drive.
+ */
+export async function uploadAll(
+  folder: UploadFolder,
+  upload: (name: string, bytes: Uint8Array) => Promise<void>,
+): Promise<void> {
+  const { pdfs } = useStore.getState();
+  if (!pdfs || isUploading(useStore.getState())) return;
+  const names = pdfFileNames(pdfs.map((pdf) => pdf.name));
+  const total = pdfs.length;
+  set({ upload: { status: "uploading", folder, done: 0, total } });
+  for (let i = 0; i < total; i++) {
+    try {
+      await upload(names[i], pdfs[i].bytes);
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      set({ upload: { status: "failed", folder, done: i, total, error } });
+      return;
+    }
+    set({ upload: { status: "uploading", folder, done: i + 1, total } });
+  }
+  set({ upload: { status: "done", folder, total } });
+}
+
+export const clearUpload = () => set({ upload: null });

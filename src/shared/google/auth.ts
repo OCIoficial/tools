@@ -4,6 +4,7 @@ import { loadScript } from './loadScript.ts'
 // Every scope used by any app is requested upfront at sign-in (see docs/google-access.md, section 2).
 export const SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
+  'https://www.googleapis.com/auth/drive.file',
   'https://www.googleapis.com/auth/gmail.send',
 ]
 

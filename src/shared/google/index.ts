@@ -5,4 +5,5 @@
 export { googleConfig, missingConfig } from './config.ts'
 export { AuthError } from './errors.ts'
 export { loadScript } from './loadScript.ts'
+export { loadPicker, pick, pickFolder, pickMany, type PickedFile } from './picker.ts'
 export { GoogleSessionProvider, useGoogleSession, type GoogleSession } from './session.tsx'

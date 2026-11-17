@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { autoMap, detectHeader, groupBySite, parseTable, titleCase, toUsers } from "./data";
+import { autoMap, detectHeader, groupBySite, parseTable, pdfFileNames, titleCase, toUsers } from "./data";
 
 describe("parseTable", () => {
   it("parses CSV and pads short rows", () => {
@@ -47,5 +47,17 @@ describe("titleCase", () => {
   it("matches Python str.title()", () => {
     expect(titleCase("josé ÁNGEL san martín")).toBe("José Ángel San Martín");
     expect(titleCase("violeta (axel) o'neil")).toBe("Violeta (Axel) O'Neil");
+  });
+});
+
+describe("pdfFileNames", () => {
+  it("makes names safe and unique", () => {
+    expect(pdfFileNames(["Santiago", "a/b", "Santiago", "a_b", ""])).toEqual([
+      "Santiago.pdf",
+      "a_b.pdf",
+      "Santiago (2).pdf",
+      "a_b (2).pdf",
+      "credentials.pdf",
+    ]);
   });
 });
