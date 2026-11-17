@@ -1,7 +1,7 @@
 # Credentials
 
 Web app to generate printable PDFs with contest login credentials from a CSV.
-It is a browser port of the [`credentials` TUI](https://github.com/OCIoficial/tools/tree/main/credentials)
+It is a browser port of the [`credentials` TUI](../../legacy/credentials)
 and runs entirely client side: the data never leaves the page.
 
 ## Usage
@@ -18,19 +18,8 @@ and runs entirely client side: the data never leaves the page.
 
 ## Development
 
-```bash
-npm install
-npm run dev      # dev server
-npm test         # unit tests
-npm run build    # static build in dist/
-```
+See the [repository README](../../README.md) for how to run, test and build the site.
 
-The PDF layout lives in `src/lib/pdf.ts` and reproduces the Typst template of the TUI using
+The PDF layout lives in `lib/pdf.ts` and reproduces the Typst template of the TUI using
 jsPDF with the Computer Modern fonts (CMU Serif / CMU Typewriter, SIL OFL, see
-`public/fonts/OFL.txt`). Previews are rendered with pdf.js.
-
-## Deployment
-
-`.github/workflows/deploy.yml` builds the app and publishes it to GitHub Pages on every push
-to `main`. In the repository settings, set **Pages → Build and deployment → Source** to
-**GitHub Actions**.
+`public/credentials/fonts/OFL.txt`). Previews are rendered with pdf.js.

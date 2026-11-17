@@ -1,5 +1,4 @@
-import { googleConfig } from '../config.ts'
-import { loadScript } from './loadScript.ts'
+import { googleConfig, loadScript } from '../../shared/google/index.ts'
 
 let pickerReady: Promise<void> | null = null
 

@@ -1,6 +1,7 @@
+import { AuthError } from '../../shared/google/index.ts'
 import type { Spreadsheet } from '../sources.ts'
 
-export class AuthError extends Error {}
+export { AuthError }
 
 async function googleFetch<T>(token: string, url: string): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -12,14 +13,6 @@ async function googleFetch<T>(token: string, url: string): Promise<T> {
     throw new Error(body?.error?.message ?? `Google API error ${response.status}`)
   }
   return response.json() as Promise<T>
-}
-
-export async function getUserEmail(token: string): Promise<string> {
-  const about = await googleFetch<{ user: { emailAddress: string } }>(
-    token,
-    'https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)',
-  )
-  return about.user.emailAddress
 }
 
 export async function getSpreadsheet(token: string, id: string): Promise<Spreadsheet> {

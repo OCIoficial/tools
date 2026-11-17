@@ -1,10 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { useGoogleSession } from '../../shared/google/index.ts'
 import { readArchive } from '../attachments/archive.ts'
 import { zipTree } from '../attachments/resolve.ts'
 import type { AttachmentTree, FileNode } from '../attachments/tree.ts'
 import type { DriveOrigin, LoadProgress, SpreadsheetSource } from '../sources.ts'
-import { AuthError, getSheetValues, getSpreadsheet, getUserEmail } from './api.ts'
-import { requestAccessToken, revokeAccessToken, type AccessToken } from './auth.ts'
+import { getSheetValues, getSpreadsheet } from './api.ts'
 import { downloadDriveFile, getDriveFileSize, loadDriveFile, loadDriveTree } from './drive.ts'
 import { sendRawMessage } from './gmail.ts'
 import { pickArchive, pickFiles, pickFolder, pickSpreadsheet } from './picker.ts'
@@ -47,47 +47,7 @@ export interface Google {
 const GoogleContext = createContext<Google | null>(null)
 
 export function GoogleProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<AccessToken | null>(null)
-  const [email, setEmail] = useState<string | null>(null)
-  const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const signIn = useCallback(async () => {
-    setConnecting(true)
-    setError(null)
-    try {
-      const next = await requestAccessToken()
-      setToken(next)
-      setEmail(await getUserEmail(next.value))
-    } catch (e) {
-      setError((e as Error).message)
-    } finally {
-      setConnecting(false)
-    }
-  }, [])
-
-  const signOut = useCallback(async () => {
-    if (token) await revokeAccessToken(token.value)
-    setToken(null)
-    setEmail(null)
-  }, [token])
-
-  /** Ejecuta una llamada a Google; si el token expiró, cierra la sesión local. */
-  const run = useCallback(
-    async <T,>(call: (token: string) => Promise<T>): Promise<T> => {
-      if (!token || token.expiresAt <= Date.now()) {
-        setToken(null)
-        throw new AuthError('Your Google session expired. Sign in again.')
-      }
-      try {
-        return await call(token.value)
-      } catch (e) {
-        if (e instanceof AuthError) setToken(null)
-        throw e
-      }
-    },
-    [token],
-  )
+  const { signedIn, email, connecting, error, signIn, signOut, run } = useGoogleSession()
 
   const value = useMemo((): Google => {
     const spreadsheets: SpreadsheetSource = {
@@ -156,7 +116,7 @@ export function GoogleProvider({ children }: { children: ReactNode }) {
     }
 
     return {
-      signedIn: token !== null,
+      signedIn,
       email,
       connecting,
       error,
@@ -168,7 +128,7 @@ export function GoogleProvider({ children }: { children: ReactNode }) {
         await run((token) => sendRawMessage(token, message))
       },
     }
-  }, [token, email, connecting, error, signIn, signOut, run])
+  }, [signedIn, email, connecting, error, signIn, signOut, run])
 
   return <GoogleContext.Provider value={value}>{children}</GoogleContext.Provider>
 }

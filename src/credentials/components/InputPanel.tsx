@@ -13,7 +13,7 @@ export function InputPanel({ onText, compact }: Props) {
   const readFile = async (file: File) => onText(await file.text(), file.name);
 
   const loadSample = async () => {
-    const res = await fetch(`${import.meta.env.BASE_URL}sample.csv`);
+    const res = await fetch(`${import.meta.env.BASE_URL}credentials/sample.csv`);
     onText(await res.text(), "sample.csv");
   };
 

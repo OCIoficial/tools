@@ -1,11 +1,11 @@
 name: CI
 
-# Lint, tipos y pruebas. Corre en cada pull request y push, y el deploy lo llama antes de
-# publicar: si algo falla, no se publica.
+# Lint, types and tests. Runs on every pull request and push, and the deploy calls it before
+# publishing: if something fails, nothing is published.
 on:
   pull_request:
   push:
-    # main lo cubre el deploy, que llama a este workflow.
+    # main is covered by the deploy, which calls this workflow.
     branches-ignore: [main]
   workflow_call:
 

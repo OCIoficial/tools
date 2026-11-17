@@ -69,7 +69,7 @@ function pngRatio(png: Uint8Array): number {
 /** Load (once) the fonts and the logo needed to build the PDFs. */
 export function loadAssets(): Promise<Assets> {
   assetsPromise ??= (async () => {
-    const base = import.meta.env.BASE_URL;
+    const base = `${import.meta.env.BASE_URL}credentials/`;
     const [serif, mono, logo] = await Promise.all([
       fetchBuffer(`${base}fonts/cmu-serif.ttf`),
       fetchBuffer(`${base}fonts/cmu-typewriter.ttf`),

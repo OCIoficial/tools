@@ -6,17 +6,17 @@
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
     "no-restricted-globals": [
       "error",
-      { "name": "fetch", "message": "Network calls belong in src/google. Use its exports from src/google/index.ts." },
-      { "name": "XMLHttpRequest", "message": "Network calls belong in src/google." },
-      { "name": "WebSocket", "message": "Network calls belong in src/google." },
-      { "name": "EventSource", "message": "Network calls belong in src/google." },
-      { "name": "google", "message": "Google's scripts are only used in src/google." },
-      { "name": "gapi", "message": "Google's scripts are only used in src/google." }
+      { "name": "fetch", "message": "Network calls belong in a google/ folder. Use its exports from google/index.ts." },
+      { "name": "XMLHttpRequest", "message": "Network calls belong in a google/ folder." },
+      { "name": "WebSocket", "message": "Network calls belong in a google/ folder." },
+      { "name": "EventSource", "message": "Network calls belong in a google/ folder." },
+      { "name": "google", "message": "Google's scripts are only used in a google/ folder." },
+      { "name": "gapi", "message": "Google's scripts are only used in a google/ folder." }
     ],
     "no-restricted-properties": [
       "error",
-      { "object": "window", "property": "fetch", "message": "Network calls belong in src/google." },
-      { "object": "globalThis", "property": "fetch", "message": "Network calls belong in src/google." }
+      { "object": "window", "property": "fetch", "message": "Network calls belong in a google/ folder." },
+      { "object": "globalThis", "property": "fetch", "message": "Network calls belong in a google/ folder." }
     ],
     "no-restricted-imports": [
       "error",
@@ -24,7 +24,7 @@
         "patterns": [
           {
             "group": ["**/google/*", "!**/google/index.ts"],
-            "message": "Outside src/google, import Google access only from src/google/index.ts."
+            "message": "Outside a google/ folder, import Google access only from its index.ts."
           }
         ]
       }
@@ -32,11 +32,22 @@
   },
   "overrides": [
     {
-      "files": ["src/google/**"],
+      "files": ["src/**/google/**"],
       "rules": {
         "no-restricted-globals": "off",
         "no-restricted-properties": "off",
         "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": ["src/credentials/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          { "name": "google", "message": "Google's scripts are only used in a google/ folder." },
+          { "name": "gapi", "message": "Google's scripts are only used in a google/ folder." }
+        ],
+        "no-restricted-properties": "off"
       }
     }
   ]

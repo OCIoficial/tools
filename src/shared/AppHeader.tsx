@@ -12,10 +12,12 @@ import {
   useMantineColorScheme,
   type MantineColorScheme,
 } from '@mantine/core'
-import { IconCheck, IconListCheck, IconLogout, IconPencil } from '@tabler/icons-react'
+import { IconCheck, IconChevronDown, IconLayoutGrid, IconLogout } from '@tabler/icons-react'
 import type { ReactNode } from 'react'
-import { useGoogle } from '../google/index.ts'
-import { useStore } from '../store.ts'
+import { APPS, type AppInfo } from '../apps.ts'
+import { useGoogleSession } from './google/index.ts'
+import { Link } from './Link.tsx'
+import { usePath } from './router.ts'
 import classes from './AppHeader.module.css'
 
 const iconProps = {
@@ -62,23 +64,6 @@ const COLOR_SCHEMES: { value: MantineColorScheme; label: string; icon: ReactNode
   },
 ]
 
-/** Dos líneas que convergen en un sobre: varias filas → un correo cada una. */
-function MergeMark() {
-  return (
-    <svg className={classes.mark} width="30" height="24" viewBox="0 0 30 24" fill="none" aria-hidden>
-      <path d="M1 5c5 0 6 7 11 7M1 19c5 0 6-7 11-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <rect x="13" y="5" width="16" height="14" rx="2" fill="currentColor" />
-      <path
-        d="M14.5 7l6.5 5 6.5-5"
-        stroke="var(--mantine-color-body)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function GoogleLogo() {
   return (
     <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
@@ -102,8 +87,6 @@ function GoogleLogo() {
   )
 }
 
-export type View = 'edit' | 'review'
-
 /** Ítems de tema para un Menu: en el teléfono el selector no cabe en el encabezado. */
 function ThemeMenuItems() {
   const { colorScheme, setColorScheme } = useMantineColorScheme()
@@ -126,51 +109,63 @@ function ThemeMenuItems() {
   )
 }
 
-/** Conteo de correos con problemas, en línea con la etiqueta de Review. */
-function ReviewLabel() {
-  // Solo el contador lee del store: cuando cambia, no se re-dibuja el encabezado entero.
-  const problemCount = useStore((state) => state.problemCount)
+/** Name of the current app; opens a menu to move to another app or to the landing page. */
+function AppSwitcher({ app }: { app?: AppInfo }) {
+  const Icon = app?.icon ?? IconLayoutGrid
   return (
-    <span className={classes.viewLabel}>
-      Review
-      {problemCount > 0 && (
-        <span className={classes.viewCounter} title={`${problemCount} emails need fixing`}>
-          {problemCount}
-        </span>
-      )}
-    </span>
+    <Menu position="bottom-start" width={220} withinPortal>
+      <Menu.Target>
+        <UnstyledButton className={classes.wordmark} aria-label="Switch app">
+          <span className={classes.mark}>
+            <Icon size={24} />
+          </span>
+          <span className={classes.title}>{app?.name ?? 'OCI Tools'}</span>
+          <IconChevronDown size={16} className={classes.chevron} />
+        </UnstyledButton>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item component={Link} to="" leftSection={<IconLayoutGrid size={18} />}>
+          All tools
+        </Menu.Item>
+        <Menu.Divider />
+        {APPS.map(({ path, name, icon: AppIcon }) => (
+          <Menu.Item
+            key={path}
+            component={Link}
+            to={path}
+            leftSection={<AppIcon size={18} />}
+            rightSection={app?.path === path ? <IconCheck size={14} /> : null}
+            aria-current={app?.path === path ? 'page' : undefined}
+          >
+            {name}
+          </Menu.Item>
+        ))}
+      </Menu.Dropdown>
+    </Menu>
   )
 }
 
 interface Props {
-  view: View
-  onViewChange: (view: View) => void
+  /** App-specific controls, shown in the middle. */
+  children?: ReactNode
 }
 
-export function AppHeader({ view, onViewChange }: Props) {
-  const google = useGoogle()
-  // Mantine guarda la elección en localStorage.
+/** Header shared by every page: app switcher, the app's own controls, theme and Google account. */
+export function AppHeader({ children }: Props) {
+  // The current app comes from the URL; none on the landing page.
+  const [first] = usePath().split('/')
+  const app = APPS.find(({ path }) => path === first)
+  const google = useGoogleSession()
+  // Mantine stores the choice in localStorage.
   const { colorScheme, setColorScheme } = useMantineColorScheme()
 
   return (
     <Group h="100%" px="md" justify="space-between" wrap="nowrap">
-      <div className={classes.wordmark} style={{ flex: 'none' }}>
-        <MergeMark />
-        <span className={classes.title}>Mail Merge</span>
+      <div style={{ flex: 'none' }}>
+        <AppSwitcher app={app} />
       </div>
 
-      {/* Segmentos de igual ancho; el conteo va en línea (como el Counter de GitHub), sin cambiar el ancho. */}
-      <SegmentedControl
-        visibleFrom="sm"
-        aria-label="View"
-        classNames={{ control: classes.viewControl }}
-        value={view}
-        onChange={(value) => onViewChange(value as View)}
-        data={[
-          { value: 'edit', label: 'Edit' },
-          { value: 'review', label: <ReviewLabel /> },
-        ]}
-      />
+      {children}
 
       <Group gap="sm" wrap="nowrap">
         <SegmentedControl
@@ -234,7 +229,7 @@ export function AppHeader({ view, onViewChange }: Props) {
             >
               <Group gap={10} wrap="nowrap">
                 {google.connecting ? <Loader size={16} /> : <GoogleLogo />}
-                {/* En el teléfono basta "Sign in": el logo de Google ya dice con qué cuenta. */}
+                {/* On a phone "Sign in" is enough: the Google logo already says which account. */}
                 <Box component="span" visibleFrom="sm">
                   Sign in with Google
                 </Box>
@@ -247,36 +242,5 @@ export function AppHeader({ view, onViewChange }: Props) {
         )}
       </Group>
     </Group>
-  )
-}
-
-/**
- * Barra inferior del teléfono: Edit y Review quedan al alcance del pulgar,
- * en vez de apretados en el encabezado.
- */
-export function BottomNav({ view, onViewChange }: Props) {
-  const tabs: { value: View; label: ReactNode; icon: ReactNode }[] = [
-    { value: 'edit', label: 'Edit', icon: <IconPencil size={22} stroke={1.75} /> },
-    {
-      value: 'review',
-      label: <ReviewLabel />,
-      icon: <IconListCheck size={22} stroke={1.75} />,
-    },
-  ]
-  return (
-    <nav className={classes.bottomNav} aria-label="View">
-      {tabs.map((tab) => (
-        <UnstyledButton
-          key={tab.value}
-          className={classes.bottomTab}
-          aria-current={view === tab.value ? 'page' : undefined}
-          data-active={view === tab.value || undefined}
-          onClick={() => onViewChange(tab.value)}
-        >
-          <span className={classes.bottomIcon}>{tab.icon}</span>
-          <span className={classes.bottomLabel}>{tab.label}</span>
-        </UnstyledButton>
-      ))}
-    </nav>
   )
 }

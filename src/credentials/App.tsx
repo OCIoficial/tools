@@ -1,3 +1,4 @@
+import "./index.css";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { InputPanel } from "./components/InputPanel";
 import { ErrorBoundary } from "./components/ErrorBoundary";

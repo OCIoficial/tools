@@ -1,7 +1,7 @@
-import { googleConfig } from '../config.ts'
+import { googleConfig } from './config.ts'
 import { loadScript } from './loadScript.ts'
 
-// Ver docs/spec-acceso-google.md, sección 2.
+// Every scope used by any app is requested upfront at sign-in (see docs/google-access.md, section 2).
 export const SCOPES = [
   'https://www.googleapis.com/auth/drive.readonly',
   'https://www.googleapis.com/auth/gmail.send',

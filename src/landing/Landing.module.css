@@ -1,0 +1,19 @@
+.card {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 120ms ease;
+}
+
+.card:hover {
+  border-color: var(--mantine-primary-color-filled);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.icon {
+  display: flex;
+  color: var(--mantine-primary-color-filled);
+}

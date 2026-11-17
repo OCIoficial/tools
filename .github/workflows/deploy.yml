@@ -1,4 +1,4 @@
-name: Deploy a GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Lint, tipos y pruebas: si fallan, no se construye ni se publica.
+  # Lint, types and tests: if they fail, nothing is built or published.
   checks:
     uses: ./.github/workflows/ci.yml
 
@@ -29,13 +29,16 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - id: pages
+        uses: actions/configure-pages@v5
       - run: npm run build
         env:
-          # Valores públicos: se guardan como Variables (no Secrets) del repositorio.
+          # Path of the Pages site (e.g. "/tools"), so every page loads assets from the right place.
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+          # Public values: stored as repository Variables (not Secrets).
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_API_KEY: ${{ vars.VITE_GOOGLE_API_KEY }}
           VITE_GOOGLE_APP_ID: ${{ vars.VITE_GOOGLE_APP_ID }}
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist

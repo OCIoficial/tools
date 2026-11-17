@@ -1,5 +1,5 @@
 import { notifications } from '@mantine/notifications'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { buildAttachment } from '../attachments/resolve.ts'
 import { AuthError, SendLimitError, UnconfirmedSendError, useGoogle } from '../google/index.ts'
 import { ADDRESS_FIELDS, type ProblemField, type RenderedEmail } from '../merge/render.ts'
@@ -120,15 +120,20 @@ async function sendTest(sendMessage: SendMessage, address: string) {
   }
 }
 
-/** Advierte al cerrar o recargar la página en medio de un envío. */
-export function useWarnWhileSending() {
-  const running = useStore((state) => state.progress !== null)
-  useEffect(() => {
-    if (!running) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [running])
+/**
+ * Warns before leaving the page while emails are being sent. It is set up once, outside React,
+ * so it keeps working while another app is open (switching apps does not stop the sending).
+ */
+export function warnWhileSending() {
+  const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+  let running = false
+  useStore.subscribe((state) => {
+    const next = state.progress !== null
+    if (next === running) return
+    running = next
+    if (running) window.addEventListener('beforeunload', warn)
+    else window.removeEventListener('beforeunload', warn)
+  })
 }
 
 /**
