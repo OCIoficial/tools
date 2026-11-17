@@ -1,4 +1,4 @@
-import { Button, Group, SimpleGrid, Stack, Text, Textarea, UnstyledButton } from "@mantine/core";
+import { Button, Group, Stack, Text, UnstyledButton } from "@mantine/core";
 import { IconUpload } from "@tabler/icons-react";
 import { useRef, useState } from "react";
 import classes from "./InputPanel.module.css";
@@ -11,7 +11,6 @@ interface Props {
 export function InputPanel({ onText, compact }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [paste, setPaste] = useState("");
 
   const readFile = async (file: File) => onText(await file.text(), file.name);
 
@@ -21,7 +20,7 @@ export function InputPanel({ onText, compact }: Props) {
   };
 
   return (
-    <SimpleGrid cols={{ base: 1, sm: compact ? 1 : 2 }} spacing="md">
+    <Stack gap="xs" align="stretch">
       <UnstyledButton
         className={classes.dropzone}
         data-over={dragOver || undefined}
@@ -55,30 +54,16 @@ export function InputPanel({ onText, compact }: Props) {
           <Text fw={600}>{compact ? "Load another CSV" : "Drop a CSV file here"}</Text>
         </Group>
         <Text size="sm" c="dimmed">
-          or click to browse. You can also paste anywhere on the page.
+          or click to browse. To paste rows (e.g. copied from Google Sheets), press Ctrl+V anywhere on the page.
         </Text>
       </UnstyledButton>
       {!compact && (
-        <Stack gap="xs">
-          <Textarea
-            placeholder="…or paste rows here (e.g. copied from Google Sheets)"
-            value={paste}
-            onChange={(e) => setPaste(e.currentTarget.value)}
-            autosize
-            minRows={4}
-            maxRows={10}
-            classNames={{ input: classes.paste }}
-          />
-          <Group gap="xs">
-            <Button disabled={!paste.trim()} onClick={() => onText(paste, "pasted text")}>
-              Load pasted data
-            </Button>
-            <Button variant="subtle" onClick={() => void loadSample()}>
-              Try with sample data
-            </Button>
-          </Group>
-        </Stack>
+        <Group>
+          <Button variant="subtle" onClick={() => void loadSample()}>
+            Try with sample data
+          </Button>
+        </Group>
       )}
-    </SimpleGrid>
+    </Stack>
   );
 }

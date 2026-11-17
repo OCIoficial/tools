@@ -7,7 +7,7 @@ Google Drive.
 
 ## Usage
 
-1. **Load data**: drop a CSV file, browse for one, or paste rows anywhere on the page
+1. **Load data**: drop a CSV file, browse for one, or paste rows anywhere on the page with Ctrl+V
    (e.g. a range copied from Google Sheets). The delimiter is detected automatically.
 2. **Match columns**: drag each column onto the field it belongs to (username, password,
    first names, last names, site), or tap a column and then a field. If the first row is a
