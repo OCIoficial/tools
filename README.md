@@ -24,7 +24,7 @@ src/
   landing/            the page at the root, with a card per app
   mailmerge/          Mail Merge
   credentials/        Credentials
-public/<app>/         static files of each app (favicon, fonts, …)
+public/<app>/         static files of each app (fonts, sample data, …)
 ```
 
 The apps are independent: neither imports from the other, and each keeps its data in its own
