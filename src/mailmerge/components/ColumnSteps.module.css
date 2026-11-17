@@ -1,0 +1,63 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 4px 4px 0;
+  border: 1px solid transparent;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  cursor: grab;
+  /* Evita que el navegador haga scroll en vez de arrastrar en pantallas táctiles. */
+  touch-action: none;
+}
+
+.step:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+/* Los campos conservan su cursor y el scroll táctil normal. */
+.step :is(input, textarea, button, label) {
+  cursor: auto;
+  touch-action: auto;
+}
+
+.step button {
+  cursor: pointer;
+}
+
+.dragging,
+.dragging:hover {
+  position: relative;
+  z-index: 1;
+  border-color: var(--mantine-primary-color-filled);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-sm);
+  cursor: grabbing;
+}
+
+.handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  color: var(--mantine-color-dimmed);
+}
+
+.step:hover .handle {
+  color: var(--mantine-color-text);
+}
+
+.dragging .handle {
+  color: var(--mantine-primary-color-filled);
+}
+
+.fields {
+  /* Alinea los campos con el nombre del paso (ancho de la manija + separación). */
+  padding-left: 24px;
+}

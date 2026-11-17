@@ -1,0 +1,27 @@
+name: CI
+
+# Lint, tipos y pruebas. Corre en cada pull request y push, y el deploy lo llama antes de
+# publicar: si algo falla, no se publica.
+on:
+  pull_request:
+  push:
+    # main lo cubre el deploy, que llama a este workflow.
+    branches-ignore: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc -b
+      - run: npm test

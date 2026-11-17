@@ -1,0 +1,8 @@
+/* Barra fija del teléfono, sobre las pestañas Edit/Review. */
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px var(--mantine-spacing-md);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}

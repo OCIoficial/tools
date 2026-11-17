@@ -1,0 +1,46 @@
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  position: relative;
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+}
+
+.dragging {
+  z-index: 1;
+  box-shadow: var(--mantine-shadow-md);
+}
+
+.handle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mantine-radius-xs);
+  background: none;
+  color: var(--mantine-color-dimmed);
+  cursor: grab;
+  /* Evita que el navegador haga scroll en vez de arrastrar en pantallas táctiles. */
+  touch-action: none;
+}
+
+.handle:hover {
+  color: var(--mantine-color-text);
+}
+
+.handle:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 1px;
+}
+
+.dragging .handle {
+  color: var(--mantine-primary-color-filled);
+  cursor: grabbing;
+}

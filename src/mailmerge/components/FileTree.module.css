@@ -1,0 +1,113 @@
+.browser {
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 10px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+  background: var(--mantine-color-default-hover);
+}
+
+.header[data-leading] {
+  padding-left: 2px;
+  gap: 4px;
+}
+
+.body {
+  padding: 4px;
+}
+
+.footer {
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
+/* --- Árbol --------------------------------------------------------------- */
+
+.list {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  user-select: none;
+}
+
+/* Guía vertical tenue bajo cada carpeta abierta, alineada con su chevron (como en VS Code). */
+.list[data-guide]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--guide-x);
+  border-left: 1px solid color-mix(in srgb, var(--mantine-color-text) 12%, transparent);
+  pointer-events: none;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding-inline-end: 6px;
+  border-radius: var(--mantine-radius-xs);
+  font-size: 13px;
+}
+
+.label:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.label[data-dir] {
+  cursor: pointer;
+}
+
+.chevron {
+  flex: none;
+  display: flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--mantine-color-dimmed);
+  transition: transform 120ms ease;
+}
+
+.chevron[data-expanded] {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
+.icon {
+  flex: none;
+  display: flex;
+  margin-inline-end: 4px;
+  color: var(--mantine-color-dimmed);
+}
+
+.folder {
+  color: var(--mantine-primary-color-filled);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  flex: none;
+  padding-inline-start: 12px;
+  color: var(--mantine-color-dimmed);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

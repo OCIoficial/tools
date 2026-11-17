@@ -1,0 +1,26 @@
+/* En el teléfono no debe pasarse del ancho de la pantalla. */
+.dropdown {
+  max-width: calc(100vw - 32px);
+}
+
+/* Ejemplo arriba, explicación abajo: los ejemplos largos no aplastan la explicación. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--mantine-font-size-xs);
+}
+
+.rows dt {
+  overflow-wrap: anywhere;
+}
+
+.rows dt code {
+  font-size: inherit;
+}
+
+.rows dd {
+  margin: 0 0 0 12px;
+  color: var(--mantine-color-dimmed);
+}

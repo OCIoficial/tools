@@ -1,0 +1,44 @@
+/* Cada ruta (con su nombre y "Required") separada de la siguiente. */
+.path + .path {
+  padding-top: 8px;
+  border-top: 1px dashed var(--mantine-color-default-border);
+}
+
+/* Zona donde se pueden soltar archivos; se marca mientras se arrastran encima. */
+.dropZone {
+  margin: -6px;
+  padding: 6px;
+  border: 1px dashed transparent;
+  border-radius: var(--mantine-radius-sm);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.dropZone[data-active] {
+  border-color: var(--mantine-primary-color-filled);
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 6%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropZone {
+    transition: none;
+  }
+}
+
+/* Un adjunto común: archivo arriba, nombre debajo. */
+.sharedRow {
+  padding: 4px 6px 6px 2px;
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.fileIcon {
+  flex: none;
+  display: flex;
+  color: var(--mantine-color-dimmed);
+}
+
+/* Alinea con el nombre del archivo (manija + ícono + separaciones). */
+.indented {
+  margin-left: 48px;
+  margin-right: 34px;
+}

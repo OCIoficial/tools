@@ -1,0 +1,36 @@
+.notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--tone);
+  border-radius: var(--mantine-radius-sm);
+  /* Fondo apenas teñido: el borde y el ícono llevan la señal, no un bloque de color. */
+  background: color-mix(in srgb, var(--tone) 8%, transparent);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.notice[data-tone='warning'] {
+  --tone: var(--mantine-color-orange-filled);
+}
+
+.notice[data-tone='error'] {
+  --tone: var(--mantine-color-red-filled);
+}
+
+.icon {
+  flex: none;
+  display: flex;
+  padding-top: 1px;
+  color: var(--tone);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-weight: 600;
+}

@@ -1,0 +1,42 @@
+.area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px dashed var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  color: var(--mantine-color-text);
+}
+
+.area[data-compact] {
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.area:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+/* Listo para pegar: borde sólido de color, como un campo con foco. */
+.area[data-focused] {
+  border-style: solid;
+  border-color: var(--mantine-primary-color-filled);
+  background: var(--mantine-primary-color-light);
+}
+
+.icon {
+  flex: none;
+  color: var(--mantine-color-dimmed);
+}
+
+.target {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  outline: none;
+  /* Invisible pero tocable: el texto y el cursor no se ven; el foco lo muestra .area. */
+  color: transparent;
+  caret-color: transparent;
+  overflow: hidden;
+}

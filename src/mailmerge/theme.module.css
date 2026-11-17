@@ -1,0 +1,18 @@
+/*
+ * Botón deshabilitado: sin relleno y con borde punteado, para que siga leyéndose como botón
+ * en ambos temas. El estilo de Mantine usa el mismo gris de las tarjetas en modo oscuro.
+ * Los botones cargando (con spinner) mantienen su aspecto normal.
+ *
+ * Se usa el atributo de tema de Mantine y no light-dark(): el build lo reescribe con variables
+ * que dependen de un color-scheme fijo, y Mantine lo define con una variable.
+ */
+.button:is(:disabled, [data-disabled]):not([data-loading]) {
+  border: 1px dashed var(--mantine-color-gray-4);
+  background: transparent;
+  color: var(--mantine-color-gray-6);
+}
+
+:global([data-mantine-color-scheme='dark']) .button:is(:disabled, [data-disabled]):not([data-loading]) {
+  border-color: var(--mantine-color-dark-3);
+  color: var(--mantine-color-dark-2);
+}

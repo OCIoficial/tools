@@ -1,0 +1,139 @@
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--mantine-color-text);
+  text-decoration: none;
+}
+
+.mark {
+  flex: none;
+  color: var(--mantine-primary-color-filled);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* Botón según las reglas de marca de Google (variantes clara y oscura). */
+.google {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #747775;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #1f1f1f;
+  font-family: Roboto, var(--mantine-font-family);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.google:hover {
+  background: #f2f2f2;
+}
+
+/* Atributo de tema de Mantine en vez de light-dark(), que el build no traduce bien. */
+:global([data-mantine-color-scheme='dark']) .google {
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+}
+
+:global([data-mantine-color-scheme='dark']) .google:hover {
+  background: #1f1f20;
+}
+
+.google:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.google[data-disabled] {
+  opacity: 0.6;
+}
+
+.account {
+  border-radius: 50%;
+}
+
+.account:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.viewControl {
+  /* Mismo ancho para ambos segmentos, calculado para que quepa "Review" con su contador. */
+  width: 104px;
+  flex: none;
+}
+
+.viewLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Contador de correos con problemas, en línea con el texto. */
+.viewCounter {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--mantine-color-orange-light);
+  color: var(--mantine-color-orange-light-color);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Barra inferior (teléfono) ------------------------------------------- */
+
+.bottomNav {
+  display: flex;
+  height: 64px;
+}
+
+.bottomTab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--mantine-color-dimmed);
+}
+
+.bottomTab[data-active] {
+  color: var(--mantine-color-text);
+}
+
+.bottomTab:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: -4px;
+}
+
+/* Píldora detrás del ícono activo, como en la navegación inferior de Material 3. */
+.bottomIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 30px;
+  border-radius: 15px;
+}
+
+.bottomTab[data-active] .bottomIcon {
+  background: var(--mantine-primary-color-light);
+  color: var(--mantine-primary-color-light-color);
+}
+
+.bottomLabel {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
