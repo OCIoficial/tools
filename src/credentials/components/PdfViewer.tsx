@@ -1,3 +1,5 @@
+import { ActionIcon, Alert, Group, Paper, Text } from "@mantine/core";
+import { IconZoomIn, IconZoomOut } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 // The legacy build includes polyfills for very recent JS features
 // (e.g. Map.prototype.getOrInsertComputed, Math.sumPrecise) that the modern
@@ -5,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 // don't support yet.
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
+
+import classes from "./PdfViewer.module.css";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -52,7 +56,6 @@ export function PdfViewer({ data }: Props) {
         const cssWidth = Math.min(width - 16, 900) * zoom;
         const viewport = page.getViewport({ scale: (cssWidth / base.width) * dpr });
         const canvas = document.createElement("canvas");
-        canvas.className = "pdf-page";
         canvas.width = Math.floor(viewport.width);
         canvas.height = Math.floor(viewport.height);
         canvas.style.width = `${cssWidth}px`;
@@ -80,23 +83,39 @@ export function PdfViewer({ data }: Props) {
   }, [data, width, zoom]);
 
   return (
-    <div className="viewer">
-      <div className="viewer-bar">
-        <span className="muted">
+    <Paper withBorder className={classes.viewer}>
+      <Group justify="space-between" className={classes.bar}>
+        <Text size="sm" c="dimmed">
           {pages} {pages === 1 ? "page" : "pages"}
-        </span>
-        <div className="row">
-          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} aria-label="Zoom out">
-            −
-          </button>
-          <span className="zoom">{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom((z) => Math.min(3, z + 0.25))} aria-label="Zoom in">
-            +
-          </button>
-        </div>
-      </div>
-      {error && <div className="error">Could not render preview: {error}</div>}
-      <div className="pages" ref={containerRef} />
-    </div>
+        </Text>
+        <Group gap={4} wrap="nowrap">
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+            aria-label="Zoom out"
+          >
+            <IconZoomOut size={18} />
+          </ActionIcon>
+          <Text size="sm" w={48} ta="center">
+            {Math.round(zoom * 100)}%
+          </Text>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
+            aria-label="Zoom in"
+          >
+            <IconZoomIn size={18} />
+          </ActionIcon>
+        </Group>
+      </Group>
+      {error && (
+        <Alert color="red" radius={0}>
+          Could not render preview: {error}
+        </Alert>
+      )}
+      <div className={classes.pages} ref={containerRef} />
+    </Paper>
   );
 }

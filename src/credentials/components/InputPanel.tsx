@@ -1,4 +1,7 @@
+import { Button, Group, SimpleGrid, Stack, Text, Textarea, UnstyledButton } from "@mantine/core";
+import { IconUpload } from "@tabler/icons-react";
 import { useRef, useState } from "react";
+import classes from "./InputPanel.module.css";
 
 interface Props {
   onText: (text: string, source: string) => void;
@@ -18,9 +21,11 @@ export function InputPanel({ onText, compact }: Props) {
   };
 
   return (
-    <div className={`input-panel ${compact ? "compact" : ""}`}>
-      <div
-        className={`dropzone ${dragOver ? "over" : ""}`}
+    <SimpleGrid cols={{ base: 1, sm: compact ? 1 : 2 }} spacing="md">
+      <UnstyledButton
+        className={classes.dropzone}
+        data-over={dragOver || undefined}
+        data-compact={compact || undefined}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOver(true);
@@ -33,11 +38,6 @@ export function InputPanel({ onText, compact }: Props) {
           if (file) void readFile(file);
         }}
         onClick={() => fileRef.current?.click()}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") fileRef.current?.click();
-        }}
       >
         <input
           ref={fileRef}
@@ -50,27 +50,35 @@ export function InputPanel({ onText, compact }: Props) {
             e.target.value = "";
           }}
         />
-        <strong>{compact ? "Load another CSV" : "Drop a CSV file here"}</strong>
-        <span className="muted">or click to browse. You can also paste anywhere on the page.</span>
-      </div>
+        <Group gap="xs" justify="center" wrap="nowrap">
+          <IconUpload size={18} />
+          <Text fw={600}>{compact ? "Load another CSV" : "Drop a CSV file here"}</Text>
+        </Group>
+        <Text size="sm" c="dimmed">
+          or click to browse. You can also paste anywhere on the page.
+        </Text>
+      </UnstyledButton>
       {!compact && (
-        <div className="paste-box">
-          <textarea
+        <Stack gap="xs">
+          <Textarea
             placeholder="…or paste rows here (e.g. copied from Google Sheets)"
             value={paste}
-            onChange={(e) => setPaste(e.target.value)}
-            rows={4}
+            onChange={(e) => setPaste(e.currentTarget.value)}
+            autosize
+            minRows={4}
+            maxRows={10}
+            classNames={{ input: classes.paste }}
           />
-          <div className="row">
-            <button className="primary" disabled={!paste.trim()} onClick={() => onText(paste, "pasted text")}>
+          <Group gap="xs">
+            <Button disabled={!paste.trim()} onClick={() => onText(paste, "pasted text")}>
               Load pasted data
-            </button>
-            <button className="link" onClick={() => void loadSample()}>
+            </Button>
+            <Button variant="subtle" onClick={() => void loadSample()}>
               Try with sample data
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Group>
+        </Stack>
       )}
-    </div>
+    </SimpleGrid>
   );
 }

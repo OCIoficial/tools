@@ -11,8 +11,11 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { useState } from "react";
+import { CloseButton, Text } from "@mantine/core";
+import { IconGripVertical } from "@tabler/icons-react";
+import { useState, type ReactNode } from "react";
 import { FIELDS, type FieldKey, type Mapping } from "../lib/fields";
+import classes from "./ColumnMapper.module.css";
 
 interface Props {
   columns: string[];
@@ -65,8 +68,8 @@ export function ColumnMapper({ columns, samples, mapping, required, onChange }: 
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
-      <div className="mapper">
-        <div className="fields">
+      <div className={classes.mapper}>
+        <div className={classes.fields}>
           {FIELDS.filter((f) => required.includes(f.key)).map((f) => {
             const col = mapping[f.key];
             return (
@@ -90,7 +93,7 @@ export function ColumnMapper({ columns, samples, mapping, required, onChange }: 
                     hidden={active === col}
                   />
                 ) : (
-                  <span className="placeholder">Drop a column here</span>
+                  <span className={classes.placeholder}>Drop a column here</span>
                 )}
               </FieldSlot>
             );
@@ -98,11 +101,18 @@ export function ColumnMapper({ columns, samples, mapping, required, onChange }: 
         </div>
 
         <Pool>
-          <div className="pool-title">
-            Unused columns <span className="muted">— drag onto a field, or tap a column then tap a field</span>
-          </div>
-          <div className="pool-cards">
-            {unassigned.length === 0 && <span className="muted">All columns are in use.</span>}
+          <Text size="sm" mb="xs">
+            Unused columns{" "}
+            <Text span c="dimmed" inherit>
+              — drag onto a field, or tap a column then tap a field
+            </Text>
+          </Text>
+          <div className={classes.poolCards}>
+            {unassigned.length === 0 && (
+              <Text size="sm" c="dimmed">
+                All columns are in use.
+              </Text>
+            )}
             {unassigned.map((i) => (
               <ColumnCard
                 key={i}
@@ -129,13 +139,15 @@ function FieldSlot(props: {
   label: string;
   selectable: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: `field:${props.field}` });
   return (
     <div
       ref={setNodeRef}
-      className={`slot ${isOver ? "over" : ""} ${props.selectable ? "selectable" : ""}`}
+      className={classes.slot}
+      data-over={isOver || undefined}
+      data-selectable={props.selectable || undefined}
       // Capture phase so that, with a column selected, tapping anywhere on the
       // slot (including the card already in it) assigns the selection.
       onClickCapture={(e) => {
@@ -145,16 +157,16 @@ function FieldSlot(props: {
         }
       }}
     >
-      <div className="slot-label">{props.label}</div>
+      <div className={classes.slotLabel}>{props.label}</div>
       {props.children}
     </div>
   );
 }
 
-function Pool({ children }: { children: React.ReactNode }) {
+function Pool({ children }: { children: ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id: "pool" });
   return (
-    <div ref={setNodeRef} className={`pool ${isOver ? "over" : ""}`}>
+    <div ref={setNodeRef} className={classes.pool} data-over={isOver || undefined}>
       {children}
     </div>
   );
@@ -194,29 +206,30 @@ function CardBody(props: {
   onRemove?: () => void;
 }) {
   return (
-    <div className={`card ${props.selected ? "selected" : ""} ${props.dragging ? "dragging" : ""}`}>
-      <div className="card-head">
-        <span className="grip" aria-hidden>
-          ⋮⋮
-        </span>
-        <span className="card-name">{props.name}</span>
+    <div
+      className={classes.card}
+      data-selected={props.selected || undefined}
+      data-dragging={props.dragging || undefined}
+    >
+      <div className={classes.cardHead}>
+        <IconGripVertical size={14} className={classes.grip} aria-hidden />
+        <span className={classes.cardName}>{props.name}</span>
         {props.onRemove && (
-          <button
-            className="remove"
+          <CloseButton
+            size="sm"
             title="Unassign"
+            aria-label="Unassign"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
               props.onRemove?.();
             }}
-          >
-            ×
-          </button>
+          />
         )}
       </div>
-      <div className="card-samples">
+      <div className={classes.cardSamples}>
         {props.samples.map((s, i) => (
-          <div key={i}>{s || <span className="muted">(empty)</span>}</div>
+          <div key={i}>{s || <i>(empty)</i>}</div>
         ))}
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { Alert } from "@mantine/core";
 import { Component, type ReactNode } from "react";
 
 interface Props {
@@ -26,9 +27,9 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="error" role="alert">
+        <Alert color="red" role="alert">
           Could not show the preview: {this.state.error.message}. You can still download the PDFs.
-        </div>
+        </Alert>
       );
     }
     return this.props.children;

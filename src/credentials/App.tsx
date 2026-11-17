@@ -1,33 +1,54 @@
-import "./index.css";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { InputPanel } from "./components/InputPanel";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { ColumnMapper } from "./components/ColumnMapper";
-import { EMPTY_MAPPING, FIELDS, requiredFields, type Mapping } from "./lib/fields";
 import {
-  autoMap,
-  columnNames,
-  dataRows,
-  detectHeader,
-  groupBySite,
-  parseTable,
-  safeFileName,
-  titleCase,
-  toUsers,
-  type Rows,
-} from "./lib/data";
+  Accordion,
+  Alert,
+  Anchor,
+  AppShell,
+  Badge,
+  Button,
+  Checkbox,
+  Container,
+  Grid,
+  Group,
+  Loader,
+  NavLink,
+  Paper,
+  ScrollArea,
+  Select,
+  Stack,
+  Table,
+  Text,
+  TextInput,
+  ThemeIcon,
+  Title,
+} from "@mantine/core";
+import { IconDownload, IconFileZip } from "@tabler/icons-react";
+import { lazy, Suspense, useEffect, useMemo, type ReactNode } from "react";
+import { AppHeader } from "../shared/AppHeader.tsx";
+import classes from "./App.module.css";
+import { ColumnMapper } from "./components/ColumnMapper";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { InputPanel } from "./components/InputPanel";
+import { columnNames, dataRows, groupBySite, safeFileName, titleCase, toUsers } from "./lib/data";
+import { FIELDS, requiredFields } from "./lib/fields";
+import {
+  generate,
+  loadPdfLib,
+  loadText,
+  PHASES,
+  phaseOf,
+  setCurrent,
+  setError,
+  setGroupSites,
+  setHasHeader,
+  setMapping,
+  setPhaseName,
+  setYear,
+  useStore,
+  type GeneratedPdf,
+} from "./store";
 
-// Heavy libraries (jsPDF, pdf.js, JSZip) are loaded on demand.
+// pdf.js is loaded on demand, only once there is something to preview.
 const PdfViewer = lazy(() => import("./components/PdfViewer").then((m) => ({ default: m.PdfViewer })));
-const loadPdfLib = () => import("./lib/pdf");
-
-interface GeneratedPdf {
-  name: string;
-  count: number;
-  bytes: Uint8Array;
-}
-
-const PHASES = ["Regional", "Final"];
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -40,40 +61,61 @@ function downloadBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export default function App() {
-  const [rows, setRows] = useState<Rows | null>(null);
-  const [source, setSource] = useState("");
-  const [hasHeader, setHasHeader] = useState(false);
-  const [mapping, setMapping] = useState<Mapping>(EMPTY_MAPPING);
-  const [groupSites, setGroupSites] = useState(true);
-  const [phaseName, setPhaseName] = useState(PHASES[0]);
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [pdfs, setPdfs] = useState<GeneratedPdf[] | null>(null);
-  const [current, setCurrent] = useState(0);
+const downloadOne = (pdf: GeneratedPdf) =>
+  downloadBlob(new Blob([pdf.bytes as BlobPart], { type: "application/pdf" }), `${safeFileName(pdf.name)}.pdf`);
 
-  const phase = `${phaseName} ${year}`.trim();
+async function downloadAll(pdfs: GeneratedPdf[], phase: string) {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const used = new Set<string>();
+  for (const pdf of pdfs) {
+    let name = `${safeFileName(pdf.name)}.pdf`;
+    for (let i = 2; used.has(name); i++) name = `${safeFileName(pdf.name)} (${i}).pdf`;
+    used.add(name);
+    zip.file(name, pdf.bytes);
+  }
+  const blob = await zip.generateAsync({ type: "blob" });
+  downloadBlob(blob, `credentials ${safeFileName(phase)}.zip`);
+}
+
+/** A numbered step of the page. */
+function Step({ num, title, children }: { num: number; title: string; children: ReactNode }) {
+  return (
+    <Paper withBorder radius="md" p="lg" component="section">
+      <Group gap="sm" mb="md" wrap="nowrap">
+        <ThemeIcon radius="xl" size={28}>
+          <Text size="sm" fw={700} span>
+            {num}
+          </Text>
+        </ThemeIcon>
+        <Title order={2} size="h4">
+          {title}
+        </Title>
+      </Group>
+      {children}
+    </Paper>
+  );
+}
+
+export default function Credentials() {
+  const rows = useStore((s) => s.rows);
+  const source = useStore((s) => s.source);
+  const hasHeader = useStore((s) => s.hasHeader);
+  const mapping = useStore((s) => s.mapping);
+  const groupSites = useStore((s) => s.groupSites);
+  const phaseName = useStore((s) => s.phaseName);
+  const year = useStore((s) => s.year);
+  const error = useStore((s) => s.error);
+  const generating = useStore((s) => s.generating);
+  const pdfs = useStore((s) => s.pdfs);
+  const current = useStore((s) => s.current);
+
+  const phase = phaseOf({ phaseName, year });
 
   // Warm up the font/logo download while the user maps columns.
   useEffect(() => {
     if (rows) void loadPdfLib().then((m) => m.loadAssets()).catch(() => {});
   }, [rows]);
-
-  const loadText = (text: string, from: string) => {
-    try {
-      const parsed = parseTable(text);
-      const header = detectHeader(parsed);
-      setRows(parsed);
-      setSource(from);
-      setHasHeader(header);
-      setMapping(autoMap(parsed, header));
-      setPdfs(null);
-      setError(null);
-    } catch (e) {
-      setError(`Error loading data: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  };
 
   // Paste anywhere on the page (outside of form fields) loads the data, like the TUI.
   useEffect(() => {
@@ -110,210 +152,209 @@ export default function App() {
     [groupSites, users, phase],
   );
 
-  // Any change to the inputs makes previously generated PDFs stale.
-  useEffect(() => setPdfs(null), [rows, hasHeader, mapping, groupSites, phase]);
-
-  const toggleHeader = (value: boolean) => {
-    setHasHeader(value);
-    if (rows) setMapping(autoMap(rows, value));
-  };
-
-  const generate = async () => {
-    setGenerating(true);
-    setError(null);
-    try {
-      const { generatePdf } = await loadPdfLib();
-      const out: GeneratedPdf[] = [];
-      for (const [name, list] of groups) {
-        out.push({ name, count: list.length, bytes: await generatePdf(phase, list) });
-        // jsPDF blocks the main thread; yield so the UI stays responsive.
-        await new Promise((r) => setTimeout(r, 0));
-      }
-      setPdfs(out);
-      setCurrent(0);
-    } catch (e) {
-      setError(`Error generating PDFs: ${e instanceof Error ? e.message : String(e)}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  const downloadOne = (p: GeneratedPdf) =>
-    downloadBlob(new Blob([p.bytes as BlobPart], { type: "application/pdf" }), `${safeFileName(p.name)}.pdf`);
-
-  const downloadAll = async () => {
-    if (!pdfs) return;
-    const { default: JSZip } = await import("jszip");
-    const zip = new JSZip();
-    const used = new Set<string>();
-    for (const p of pdfs) {
-      let name = `${safeFileName(p.name)}.pdf`;
-      for (let i = 2; used.has(name); i++) name = `${safeFileName(p.name)} (${i}).pdf`;
-      used.add(name);
-      zip.file(name, p.bytes);
-    }
-    const blob = await zip.generateAsync({ type: "blob" });
-    downloadBlob(blob, `credentials ${safeFileName(phase)}.zip`);
-  };
-
   const canGenerate = rows !== null && missing.length === 0 && users.length > 0;
   const selected = pdfs?.[current];
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <h1>Credentials</h1>
-        <span className="muted">Generate printable OCI login credentials from a CSV. Everything runs in your browser.</span>
-      </header>
+    <AppShell header={{ height: 60 }} padding="md">
+      <AppShell.Header>
+        <AppHeader />
+      </AppShell.Header>
+      <AppShell.Main>
+        <Container size="lg" px={0}>
+          <Stack gap="md">
+            <Text c="dimmed">
+              Generate printable OCI login credentials from a CSV. Everything runs in your browser.
+            </Text>
 
-      {error && (
-        <div className="error" role="alert">
-          {error}
-          <button className="link" onClick={() => setError(null)}>
-            Dismiss
-          </button>
-        </div>
-      )}
+            {error && (
+              <Alert color="red" title="Something went wrong" withCloseButton onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
 
-      <section className="step">
-        <h2>
-          <span className="num">1</span> Load data
-        </h2>
-        {rows && (
-          <p className="muted">
-            Loaded {body.length} {body.length === 1 ? "row" : "rows"} and {columns.length} columns from {source}.
-          </p>
-        )}
-        <InputPanel onText={loadText} compact={rows !== null} />
-      </section>
+            <Step num={1} title="Load data">
+              {rows && (
+                <Text size="sm" c="dimmed" mb="sm">
+                  Loaded {body.length} {body.length === 1 ? "row" : "rows"} and {columns.length} columns from{" "}
+                  {source}.
+                </Text>
+              )}
+              <InputPanel onText={loadText} compact={rows !== null} />
+            </Step>
 
-      {rows && (
-        <section className="step">
-          <h2>
-            <span className="num">2</span> Match columns
-          </h2>
-          <label className="check">
-            <input type="checkbox" checked={hasHeader} onChange={(e) => toggleHeader(e.target.checked)} />
-            First row is a header
-          </label>
-          <ColumnMapper columns={columns} samples={samples} mapping={mapping} required={required} onChange={setMapping} />
+            {rows && (
+              <Step num={2} title="Match columns">
+                <Checkbox
+                  label="First row is a header"
+                  checked={hasHeader}
+                  onChange={(e) => setHasHeader(e.currentTarget.checked)}
+                />
+                <ColumnMapper
+                  columns={columns}
+                  samples={samples}
+                  mapping={mapping}
+                  required={required}
+                  onChange={setMapping}
+                />
 
-          {missing.length === 0 && users.length > 0 && (
-            <details className="data-preview">
-              <summary>
-                Check data ({users.length} {users.length === 1 ? "credential" : "credentials"})
-              </summary>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Username</th>
-                      <th>Password</th>
-                      {groupSites && <th>Site</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u, i) => (
-                      <tr key={i}>
-                        <td>{titleCase(`${u.firstName} ${u.lastName}`.trim())}</td>
-                        <td className="mono">{u.username}</td>
-                        <td className="mono">{u.password}</td>
-                        {groupSites && <td>{u.site}</td>}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-          )}
-        </section>
-      )}
+                {missing.length === 0 && users.length > 0 && (
+                  <Accordion variant="contained" mt="md">
+                    <Accordion.Item value="data">
+                      <Accordion.Control>
+                        Check data ({users.length} {users.length === 1 ? "credential" : "credentials"})
+                      </Accordion.Control>
+                      <Accordion.Panel>
+                        <ScrollArea.Autosize mah={320}>
+                          <Table stickyHeader striped fz="sm" className={classes.table}>
+                            <Table.Thead>
+                              <Table.Tr>
+                                <Table.Th>Name</Table.Th>
+                                <Table.Th>Username</Table.Th>
+                                <Table.Th>Password</Table.Th>
+                                {groupSites && <Table.Th>Site</Table.Th>}
+                              </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                              {users.map((u, i) => (
+                                <Table.Tr key={i}>
+                                  <Table.Td>{titleCase(`${u.firstName} ${u.lastName}`.trim())}</Table.Td>
+                                  <Table.Td ff="monospace">{u.username}</Table.Td>
+                                  <Table.Td ff="monospace">{u.password}</Table.Td>
+                                  {groupSites && <Table.Td>{u.site}</Table.Td>}
+                                </Table.Tr>
+                              ))}
+                            </Table.Tbody>
+                          </Table>
+                        </ScrollArea.Autosize>
+                      </Accordion.Panel>
+                    </Accordion.Item>
+                  </Accordion>
+                )}
+              </Step>
+            )}
 
-      {rows && (
-        <section className="step">
-          <h2>
-            <span className="num">3</span> Options
-          </h2>
-          <div className="options">
-            <label>
-              Phase
-              <select value={phaseName} onChange={(e) => setPhaseName(e.target.value)}>
-                {PHASES.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Year
-              <input value={year} onChange={(e) => setYear(e.target.value)} inputMode="numeric" size={6} />
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={groupSites} onChange={(e) => setGroupSites(e.target.checked)} />
-              One PDF per site
-            </label>
-            {/* The label stays in place (invisible) while busy so the button keeps its size. */}
-            <button
-              className="primary busy-button"
-              disabled={!canGenerate}
-              aria-busy={generating}
-              aria-disabled={generating || undefined}
-              onClick={() => {
-                if (!generating) void generate();
-              }}
-            >
-              <span className="label">{groupSites ? `Generate ${groups.size} PDFs` : "Generate PDF"}</span>
-              {generating && <span className="spinner" aria-hidden />}
-            </button>
-            <span className="visually-hidden" role="status">
-              {generating ? "Generating PDFs…" : pdfs ? "PDFs ready" : ""}
-            </span>
-          </div>
-          {missing.length > 0 && (
-            <p className="muted">Assign a column to: {missing.map((f) => f.label).join(", ")}.</p>
-          )}
-        </section>
-      )}
+            {rows && (
+              <Step num={3} title="Options">
+                <Group align="flex-end" gap="md">
+                  <Select
+                    label="Phase"
+                    data={PHASES}
+                    value={phaseName}
+                    onChange={(value) => value && setPhaseName(value)}
+                    allowDeselect={false}
+                    w={140}
+                  />
+                  <TextInput
+                    label="Year"
+                    value={year}
+                    onChange={(e) => setYear(e.currentTarget.value)}
+                    inputMode="numeric"
+                    w={90}
+                  />
+                  <Checkbox
+                    label="One PDF per site"
+                    checked={groupSites}
+                    onChange={(e) => setGroupSites(e.currentTarget.checked)}
+                    mb={8}
+                  />
+                  {/* Mantine keeps the button's width while it shows the loader. */}
+                  <Button disabled={!canGenerate} loading={generating} onClick={() => void generate(groups)}>
+                    {groupSites ? `Generate ${groups.size} PDFs` : "Generate PDF"}
+                  </Button>
+                  <span className={classes.visuallyHidden} role="status">
+                    {generating ? "Generating PDFs…" : pdfs ? "PDFs ready" : ""}
+                  </span>
+                </Group>
+                {missing.length > 0 && (
+                  <Text size="sm" c="dimmed" mt="sm">
+                    Assign a column to: {missing.map((f) => f.label).join(", ")}.
+                  </Text>
+                )}
+              </Step>
+            )}
 
-      {pdfs && selected && (
-        <section className="step">
-          <h2>
-            <span className="num">4</span> Preview &amp; download
-          </h2>
-          <div className="results">
-            <nav className="pdf-list" aria-label="Generated PDFs">
-              {pdfs.map((p, i) => (
-                <button key={p.name} className={i === current ? "active" : ""} onClick={() => setCurrent(i)}>
-                  <span>{p.name}</span>
-                  <span className="badge">{p.count}</span>
-                </button>
-              ))}
-            </nav>
-            <div className="preview">
-              <div className="preview-actions">
-                <strong>{selected.name}.pdf</strong>
-                <div className="button-group">
-                  <button onClick={() => downloadOne(selected)}>Download PDF</button>
-                  {pdfs.length > 1 && (
-                    <button className="primary" onClick={() => void downloadAll()}>
-                      Download all (.zip)
-                    </button>
-                  )}
-                </div>
-              </div>
-              <ErrorBoundary resetKey={selected}>
-                <Suspense fallback={<div className="viewer viewer-loading muted">Loading viewer…</div>}>
-                  <PdfViewer data={selected.bytes} />
-                </Suspense>
-              </ErrorBoundary>
-            </div>
-          </div>
-        </section>
-      )}
+            {pdfs && selected && (
+              <Step num={4} title="Preview & download">
+                <Grid gap="md">
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    {/* On a phone a dropdown takes less room than the list. */}
+                    <Select
+                      hiddenFrom="sm"
+                      aria-label="PDF to preview"
+                      data={pdfs.map((p, i) => ({ value: String(i), label: `${p.name} (${p.count})` }))}
+                      value={String(current)}
+                      onChange={(value) => value && setCurrent(Number(value))}
+                      allowDeselect={false}
+                    />
+                    <ScrollArea.Autosize mah="75vh" visibleFrom="sm">
+                      <nav aria-label="Generated PDFs">
+                        {pdfs.map((p, i) => (
+                          <NavLink
+                            key={p.name}
+                            label={p.name}
+                            active={i === current}
+                            onClick={() => setCurrent(i)}
+                            rightSection={
+                              <Badge size="sm" variant="light" color="gray">
+                                {p.count}
+                              </Badge>
+                            }
+                          />
+                        ))}
+                      </nav>
+                    </ScrollArea.Autosize>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 9 }}>
+                    <Stack gap="sm">
+                      <Group justify="space-between" gap="sm">
+                        <Text fw={700} className={classes.pdfName}>
+                          {selected.name}.pdf
+                        </Text>
+                        <div className={classes.downloads}>
+                          <Button
+                            variant="default"
+                            leftSection={<IconDownload size={16} />}
+                            onClick={() => downloadOne(selected)}
+                          >
+                            Download PDF
+                          </Button>
+                          {pdfs.length > 1 && (
+                            <Button
+                              leftSection={<IconFileZip size={16} />}
+                              onClick={() => void downloadAll(pdfs, phase)}
+                            >
+                              Download all (.zip)
+                            </Button>
+                          )}
+                        </div>
+                      </Group>
+                      <ErrorBoundary resetKey={selected}>
+                        <Suspense
+                          fallback={
+                            <Paper withBorder className={classes.viewerLoading}>
+                              <Loader size="sm" />
+                            </Paper>
+                          }
+                        >
+                          <PdfViewer data={selected.bytes} />
+                        </Suspense>
+                      </ErrorBoundary>
+                    </Stack>
+                  </Grid.Col>
+                </Grid>
+              </Step>
+            )}
 
-      <footer className="muted">
-        Your data never leaves this page. <a href="https://github.com/OCIoficial/credentials">Source</a>
-      </footer>
-    </div>
+            <Text size="sm" c="dimmed" ta="center">
+              Your data never leaves this page.{" "}
+              <Anchor href="https://github.com/OCIoficial/tools/tree/main/src/credentials" size="sm">
+                Source
+              </Anchor>
+            </Text>
+          </Stack>
+        </Container>
+      </AppShell.Main>
+    </AppShell>
   );
 }
